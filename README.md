@@ -2,7 +2,7 @@
 
 Browse the examples online at **<https://so3lr.github.io/gui/>**; calculations need the local service below.
 
-Explore a 1 ns Ala15 trajectory, inspect molecular and periodic structures from the Tauri paper, or run SO3LR-Tauri S, M and L on your own structures. The workbench ships its example coordinates and recordings and runs calculations on the computer hosting the Python service.
+Explore a 500 ps Ala15 trajectory, inspect molecular and periodic structures from the Tauri paper, or run SO3LR-Tauri S, M and L on your own structures. The workbench ships its example coordinates and recordings and runs calculations on the computer hosting the Python service.
 
 ## Start the workbench
 
@@ -14,11 +14,11 @@ uv run --locked serve.py --port 8773
 
 Open the workbench in your browser. The first view plays the Ala15 recording. Playback starts paused when the browser requests reduced motion. During optimization and molecular dynamics, the viewer follows the latest saved geometry and shows its step. Periodic optimization updates the unit cell too. A refresh in a tab with an active calculation reconnects to that job. The static interface can browse the library, replay bundled results and build structures from SMILES. Trajectory import and new calculations use the local Python service. [Open SO3LR](http://127.0.0.1:8773/)
 
-## Explore the 1 ns Ala15 trajectory
+## Explore the 500 ps Ala15 trajectory
 
-The opening recording shows the 162-atom capped peptide Ac-(Ala)₁₅-NHMe in the gas phase at a target of 300 K. It comes from replica 1 (run `r2`) of the Tauri paper’s folded Ala15 study. The original SO3LR-Tauri M production run used JAX-MD with a Nosé–Hoover chain and a 0.5 fs integration step. The replay covers the first 1 ns in 501 snapshots, starting at 0.5 ps and then every 2 ps. The viewer aligns heavy atoms to the first frame to remove overall tumbling. Exported coordinates retain their original orientation. [Tauri, Figure S16](https://arxiv.org/html/2611.06237v1) · [Recording preparation](benchmarks/prepare_ala15_recording.py)
+The opening recording shows the 162-atom capped peptide Ac-(Ala)₁₅-NHMe in the gas phase at a target of 300 K. It comes from replica 1 (run `r2`) of the Tauri paper’s folded Ala15 study. The original SO3LR-Tauri M production run used JAX-MD with a Nosé–Hoover chain and a 0.5 fs integration step. The replay covers the first 500 ps in 501 snapshots, starting at 0.5 ps and then every 1 ps. The viewer aligns heavy atoms to the first frame to remove overall tumbling. Exported coordinates retain their original orientation. [Tauri, Figure S16](https://arxiv.org/html/2611.06237v1) · [Recording preparation](benchmarks/prepare_ala15_recording.py)
 
-Pause the player or drag its slider to inspect a frame. Clicking or dragging in an analysis chart moves the structure and the other chart cursors to the same frame. Use the arrow keys when a chart has keyboard focus. Choose **Ala15 → Saved 1 ns trajectory** to reopen the recording.
+Pause the player or drag its slider to inspect a frame. Clicking or dragging in an analysis chart moves the structure and the other chart cursors to the same frame. Use the arrow keys when a chart has keyboard focus. Choose **Ala15 → Saved 500 ps trajectory** to reopen the recording.
 
 - **Secondary structure** reports the fraction of all 15 alanine residues assigned to each DSSP class at every displayed time. Legend percentages average over all saved frames and all 15 residues. The chart follows the population at each frame. Caps are excluded. Toggle α-helix, 3₁₀-helix, turn, coil or another observed state in the legend. The GUI computes DSSP from the coordinates. The paper used STRIDE. Transitions faster than the display sampling interval can fall between snapshots. Peptide-specific analysis appears for Ala15, including recognized imported trajectories. [MDTraj DSSP](https://mdtraj.org/1.9.4/api/generated/mdtraj.compute_dssp.html)
 - **Kinetic energy** and **instantaneous temperature** use the archived momenta and the paper run’s 3N temperature convention. The two raw trajectory segments omit potential energy, so the opening replay has no potential-energy curve.

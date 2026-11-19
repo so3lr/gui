@@ -617,7 +617,7 @@ async function initialize(){
     engineCheck=local?request('api/status').catch(()=>null):Promise.resolve(null);
     const [core,samples,paper]=await Promise.all(['molecules.json','examples.json','paper-catalog.json'].map(path=>request(path)));
     const folded=core.find(s=>s.id==='ala15_folded');
-    Object.assign(folded,{recording:'ala15-paper.json',recording_label:'Saved 1 ns trajectory',default_task:'md',source_url:'https://arxiv.org/html/2611.06237v1'});
+    Object.assign(folded,{recording:'ala15-paper.json',recording_label:'Saved 500 ps trajectory',default_task:'md',source_url:'https://arxiv.org/html/2611.06237v1'});
     core.forEach(s=>s.group='Molecular examples');
     const items=[...core,...paper].filter(canCalculate);
     const atomCount=item=>item.atom_count??item.elements.length;

@@ -1,4 +1,4 @@
-"""Build the 1 ns Ala15 replay from the first production segment of paper replica 1.
+"""Build the 500 ps Ala15 replay from the first production segment of paper replica 1.
 
 Run from the workbench with its Python environment:
   python benchmarks/prepare_ala15_recording.py /path/to/raw_trajectories/trajectories/ala15f
@@ -28,7 +28,7 @@ def build_recording(directory):
     initial_positions = np.array([line.split()[1:4] for line in reference], dtype=float)
     masses = np.array([atomic_masses[atomic_numbers[symbol]] for symbol in elements])
     frames, steps, energies = [], [], []
-    sources = [("ala15f_10ns_r2.xyz", 11, 2_000)]
+    sources = [("ala15f_10ns_r2.xyz", 11, 1_000)]
     cycles = 0
 
     for filename, relaxation, production in sources:
@@ -46,8 +46,8 @@ def build_recording(directory):
                     raise ValueError(f"Unexpected properties in {filename} at frame {count}")
                 cycles += int(is_production)
                 # Frame one has a real thermal state; frame zero is a relaxation
-                # geometry with no momenta. Sample the excerpt every 2 ps.
-                save = is_production and (cycles == 1 or cycles % 4 == 0)
+                # geometry with no momenta. Sample the excerpt every 1 ps.
+                save = is_production and (cycles == 1 or cycles % 2 == 0)
                 if save or count == cycles == 0:
                     rows = [line.split() for line in rows]
                     if [r[0].decode() for r in rows] != elements:
@@ -72,7 +72,7 @@ def build_recording(directory):
     raw_fractions = analyze_trajectory(elements, raw)["peptide"]["fractions"]
     assert raw_fractions == analysis["peptide"]["fractions"]
     assert analysis["peptide"]["residue_count"] == 15 and len(display) == 501
-    assert steps[0] == 1000 and steps[-1] == 2_000_000
+    assert steps[0] == 1000 and steps[-1] == 1_000_000
     # Reproduce this campaign's jax_md.quantity.temperature(momentum=p, mass=m)
     # convention: 3N Cartesian degrees of freedom and ase.units.kB in eV/K.
     temperatures = (2 * np.array(energies) / (3 * len(elements) * units.kB)).round(6)
@@ -80,12 +80,12 @@ def build_recording(directory):
           "integrator": "JAX-MD Nosé–Hoover chain", "steps": steps[-1], "requested_steps": steps[-1],
           "timestep": 0.5, "temperature": 300, "seed": 43, "chain_length": 3,
           "temperature_dof": 3 * len(elements), "lr_cutoff_A": 1000}
-    recording = {"title": "Ala15 · 1 ns", "figure": "Tauri, Fig. S16",
+    recording = {"title": "Ala15 · 500 ps", "figure": "Tauri, Fig. S16",
                  "replica": 1, "run_id": "r2", "checkpoint": "so3lr-tauri-m-2606",
-                 "production_duration_fs": 1_000_000, "source_interval_fs": 500,
+                 "production_duration_fs": 500_000, "source_interval_fs": 500,
                  "segments": [entry[0] for entry in sources],
-                 "sampling": "The first thermal frame is at 0.5 ps, followed by 2 ps, 4 ps and every 2 ps through 1 ns.",
-                 "source": "Gas-phase paper replica 1 (r2), the first 1 ns of the initial 10 ns segment. The first 11 relaxation geometries are excluded.",
+                 "sampling": "The first thermal frame is at 0.5 ps, followed by 1 ps, 2 ps and every 1 ps through 500 ps.",
+                 "source": "Gas-phase paper replica 1 (r2), the first 500 ps of the initial 10 ns segment. The first 11 relaxation geometries are excluded.",
                  "observables": "Kinetic energy and temperature use the archived momenta. Whole-peptide DSSP and heavy-atom RMSD use the saved positions. The trajectory files contain no potential energies."}
     result = {"frames": display.tolist(), "coordinates": display[-1].tolist(), "frame_steps": steps,
               "times_fs": [s // 2 for s in steps], "kinetic_energies": np.round(energies, 8).tolist(),
