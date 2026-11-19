@@ -315,7 +315,7 @@ function openResult(entry,initialFrame=entry.result.frames.length-1) {
   const sampling=multi?r.frames.length.toLocaleString()+' saved frames'+(uniform?' every '+formatTime(interval):''):'';
   const provenance=byId('provenance');
   byId('result-heading').hidden=ala15Replay || Boolean(r.analysis?.peptide);
-  provenance.textContent=[entry.provenance,entry.structure.conformer_count>1?'Geometry '+(entry.structure.source_frame??1):'',resultModel(c),r.md?.integrator,r.periodic?.optimizer,sampling].filter(Boolean).join(' · ');
+  provenance.textContent=[entry.provenance,entry.structure.conformer_count>1?'Geometry '+(entry.structure.source_frame??1):'',resultModel(c),r.md?.integrator,r.optimizer??r.periodic?.optimizer,sampling].filter(Boolean).join(' · ');
   byId('result-title').textContent=entry.structure.name+' · '+taskLabel[c.task];
   const metrics=[];
   if(Number.isFinite(r.energy))metrics.push(metric(c.task==='energy'?'Potential energy':'Final potential energy',r.energy.toFixed(5)+' eV'));
@@ -406,7 +406,8 @@ function runInBrowser(structure,config) {
       byId('view-kind').textContent=(config.task==='md'?'Live MD':'Live optimization')+' · Step '+data.step;
       byId('engine-note').textContent='Step '+data.step+' / '+config.steps;
     };
-    worker.postMessage({structure:{id:structure.id,elements:structure.elements,coordinates:structure.coordinates},config});
+    const {id,elements,coordinates,browser_optimizer}=structure;
+    worker.postMessage({structure:{id,elements,coordinates,browser_optimizer},config});
   });
   return promise.finally(()=>{worker.terminate();cancel.hidden=true;cancelBrowserRun=null;});
 }

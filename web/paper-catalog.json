@@ -22,7 +22,8 @@
     ],
     "source_id": "305",
     "default_task": "relax",
-    "relax_steps": 2000
+    "relax_steps": 2000,
+    "browser_optimizer": "LBFGS"
   },
   {
     "id": "paper-test-dna",
