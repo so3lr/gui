@@ -204,11 +204,13 @@ function loadMolecule(entry,config) {
   byId('structure-scope').value=entry.focus_range||entry.focus_indices?'solute':'cell';
   byId('force-limit').value=config?.fmax??0.05;
   byId('max-steps').value=(config?.task==='relax'?config.steps:null)??entry.relax_steps??100;
-  byId('md-steps').value=config?.task==='md'?(config.steps??100):100;
+  const mdSteps=byId('md-steps');
+  mdSteps.value=(config?.task==='md'?config.steps:null)??mdSteps.defaultValue;
   byId('md-temp').value=config?.temperature??300;
   byId('md-dt').value=config?.timestep??byId('md-dt').defaultValue;
   if(config?.precision)byId('precision').value=config.precision;
-  const radio=Array.from(document.querySelectorAll('input[name=potential]')).find(el=>el.value===config?.model);
+  const model=config?.model??entry.default_model;
+  const radio=Array.from(document.querySelectorAll('input[name=potential]')).find(el=>el.value===model);
   (radio??document.querySelector('input[name=potential][checked]')).checked=true;
   setupDevices(hostStatus,config?.device??byId('device').value);
   configureMethod();
@@ -220,10 +222,8 @@ function getSourceLink(entry){
   return entry.source_url?.startsWith('https://')?entry.source_url:null;
 }
 function liveConfig(entry){
-  if(entry.result.recording?.production_duration_fs)
-    return {task:'md',steps:100,temperature:entry.config.temperature};
-  if(entry.config.steps>1000000)
-    return {task:'md',steps:100,temperature:entry.config.temperature,model:entry.config.model};
+  if(entry.result.recording?.production_duration_fs || entry.config.steps>1000000)
+    return {task:'md',temperature:entry.config.temperature,model:entry.config.model};
   return entry.config;
 }
 async function recording(structure){

@@ -21,8 +21,10 @@ async function main() {
     await page.locator('#scrub').waitFor({ state: 'visible' });
 
     const selectedModel = page.locator('input[name=potential]:checked');
-    assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-s');
+    assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-m');
     assert.match(await page.locator('#provenance').textContent(), /Tauri M/);
+    assert.equal(await page.locator('#md-steps').inputValue(), '1000');
+    assert.equal(await page.locator('#duration').textContent(), '1 ps');
 
     for (const { id, model, e, f } of reference) {
       const actual = await page.evaluate(
@@ -92,6 +94,7 @@ async function main() {
       .locator('#coordinates')
       .fill('3\nStretched water\nO 0 0 0\nH 1.18 0 0\nH -0.24 0.927 0');
     await page.click('#read-paste');
+    assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-s');
     await page.selectOption('#method', 'relax');
     await page.click('#action');
     await waitForResult();
@@ -119,6 +122,9 @@ async function main() {
     await page.click('#action');
     await waitForResult();
     assert.equal(await page.locator('#scrub').getAttribute('max'), '2');
+    await page.goto(new URL('?example=ala15&view=structure', page.url()).href);
+    await page.locator('#action:not(:disabled)').waitFor();
+    assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-m');
     assert.deepEqual(calculations, []);
   } finally {
     await browser.close();
