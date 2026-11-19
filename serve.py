@@ -28,7 +28,7 @@ config.update("jax_enable_x64", True)
 import numpy as np
 from ase import Atoms, units
 from ase.data import atomic_numbers
-from ase.optimize import BFGS
+from ase.optimize import LBFGS
 with jax.default_device(jax.local_devices(backend="cpu")[0]):
     from so3lr import So3lrCalculator
 
@@ -220,7 +220,7 @@ def static_or_relax(atoms, task, steps, fmax, progress, on_frame):
     if task == "energy":
         sample(0)
     else:
-        driver = BFGS(atoms, logfile=None)
+        driver = LBFGS(atoms, memory=20, maxstep=0.15, logfile=None)
 
         def on_step():
             sample(driver.nsteps)
@@ -241,6 +241,8 @@ def static_or_relax(atoms, task, steps, fmax, progress, on_frame):
                   frames=frames, energies=energies, frame_steps=frame_steps, converged=converged,
                   partial_charges=atomic_charges, dipoles_debye=dipoles or None,
                   units={"coordinates": "Å", "energy": "eV", "forces": "eV/Å", "charge":"e", "dipole":"D"})
+    if task == "relax":
+        result["optimizer"] = "LBFGS"
     return result
 
 

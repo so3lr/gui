@@ -98,9 +98,10 @@ export function makePython(structure, model, task, params = {}, nativeSource = '
   if (task === 'relax') {
     const fmax = parameter(params.fmax, 0.01, 0.001, 1, 'force tolerance (eV/Å)');
     const steps = parameter(params.steps, 100, 1, 2000, 'optimization steps', true);
-    imports = 'from ase.optimize import BFGS';
-    calculation = `optimizer = BFGS(atoms, logfile=None)
+    imports = 'from ase.optimize import LBFGS';
+    calculation = `optimizer = LBFGS(atoms, memory=20, maxstep=0.15, logfile=None)
 converged = optimizer.run(fmax=${fmax}, steps=${steps})
+atoms.info["optimizer"] = "LBFGS"
 print(f"Optimization converged: {converged} (steps: {optimizer.nsteps})")
 `;
   }
