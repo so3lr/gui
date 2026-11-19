@@ -100,7 +100,7 @@ function describeAtom() {
   popup.textContent=(atomNames[name]||name)+' '+(selectedAtom+1);
 }
 function haltPlayback() {
-  clearInterval(playback); playback=0;
+  cancelAnimationFrame(playback); playback=0;
   byId('animate').replaceChildren(glyph('play'));
   byId('animate').setAttribute('aria-label','Play trajectory');
   byId('animate').title='Play trajectory';
@@ -561,13 +561,24 @@ document.querySelectorAll('[data-dismiss]').forEach(btn=>btn.onclick=()=>btn.clo
 byId('input-file').onchange=e=>handleFile(e.target.files[0]);
 byId('read-paste').onclick=()=>{try{loadText(byId('coordinates').value,'Imported molecule');}catch(e){byId('file-error').textContent=e.message;}};
 const zone=byId('filezone');zone.ondragover=e=>{e.preventDefault();zone.classList.add('dragging');};zone.ondragleave=()=>zone.classList.remove('dragging');zone.ondrop=e=>{e.preventDefault();zone.classList.remove('dragging');handleFile(e.dataTransfer.files[0]);};
+document.addEventListener('visibilitychange',()=>{if(document.hidden && playback)haltPlayback();});
 byId('scrub').oninput=e=>{haltPlayback();changeFrame(Number(e.target.value));};
 byId('animate').onclick=()=>{
   if(playback)return haltPlayback();
   const end=shown.result.frames.length-1;
   if(+byId('scrub').value>=end)changeFrame(0);
   byId('animate').replaceChildren(glyph('pause'));byId('animate').setAttribute('aria-label','Pause trajectory');byId('animate').title='Pause trajectory';
-  playback=setInterval(()=>{const n=+byId('scrub').value+1;changeFrame(n);if(n>=end)haltPlayback();},150);
+  const scrub=byId('scrub'), speed=byId('playback-speed');
+  let position=Number(scrub.value), previous=performance.now();
+  function advance(now) {
+    position+=Math.max(0,now-previous)*30*Number(speed.value)/1000;
+    previous=now;
+    const index=Math.min(end,Math.floor(position));
+    if(index!==Number(scrub.value))changeFrame(index);
+    if(index===end)haltPlayback();
+    else playback=requestAnimationFrame(advance);
+  }
+  playback=requestAnimationFrame(advance);
 };
 function saveTrajectory() {
   if(!shown)return;

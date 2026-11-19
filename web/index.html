@@ -38,7 +38,10 @@
         <label id="dipole-control" hidden><input id="dipole-toggle" type="checkbox"><span id="dipole-label">Dipole</span></label>
         <button id="save-trajectory" type="button" hidden><em data-glyph="save"></em>Save trajectory</button>
       </div>
-      <div class="viewport-player" id="viewport-player" hidden><button id="animate" aria-label="Play trajectory" title="Play trajectory"><em data-glyph="play"></em></button><input id="scrub" aria-label="Trajectory frame" type="range" min="0" max="1" value="0"><output id="frame-index" for="scrub"></output><a id="view-analysis" href="#trajectory-analysis" hidden>Analysis ↓</a></div>
+      <div class="viewport-player" id="viewport-player" hidden>
+        <button id="animate" aria-label="Play trajectory" title="Play trajectory"><em data-glyph="play"></em></button>
+        <select id="playback-speed" aria-label="Playback speed" title="Playback speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+        <input id="scrub" aria-label="Trajectory frame" type="range" min="0" max="1" value="0"><output id="frame-index" for="scrub"></output><a id="view-analysis" href="#trajectory-analysis" hidden>Analysis ↓</a></div>
       <div class="source-bar" id="source-bar" hidden>
         <label id="frame-picker" for="starting-frame" hidden>Starting geometry <select id="starting-frame"></select><span id="source-count"></span></label>
         <a id="dataset-source" target="_blank" rel="noopener" hidden>Dataset source</a><button type="button" id="replay-peptide" hidden>Open recording</button><a id="source-xyz" download><em data-glyph="save"></em>Source XYZ</a>
