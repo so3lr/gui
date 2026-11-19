@@ -13,6 +13,64 @@ function maxNorm(x) {
   for (let i = 0; i < x.length; i += 3) max = Math.max(max, Math.hypot(x[i], x[i + 1], x[i + 2]));
   return max;
 }
+function fireStep(velocity) {
+  let dt = 0.1, alpha = 0.1, positive = 0;
+  return (x, f, step) => {
+    if (dot(velocity, f) > 0) {
+      const ratio = Math.sqrt(dot(velocity, velocity) / dot(f, f));
+      for (let i = 0; i < x.length; i++)
+        velocity[i] = (1 - alpha) * velocity[i] + alpha * ratio * f[i];
+      if (++positive > 5) {
+        dt = Math.min(1, 1.1 * dt);
+        alpha *= 0.99;
+      }
+    } else if (step) {
+      velocity.fill(0);
+      dt *= 0.5;
+      alpha = 0.1;
+      positive = 0;
+    }
+    for (let i = 0; i < x.length; i++) velocity[i] += dt * f[i];
+    const scale = Math.min(dt, 0.15 / Math.max(maxNorm(velocity), 1e-30));
+    for (let i = 0; i < x.length; i++) x[i] += scale * velocity[i];
+  };
+}
+
+// Limited-memory BFGS in Cartesian coordinates. The two-loop recursion
+// applies an inverse Hessian approximation to the negative energy gradient.
+function lbfgsStep() {
+  const history = [];
+  let displacement, previousForces;
+  return (positions, forces) => {
+    if (previousForces) {
+      const gradientChange = previousForces.map((v, i) => v - forces[i]);
+      const curvature = dot(displacement, gradientChange);
+      if (curvature > 1e-12) {
+        history.push({ displacement, gradientChange, inverseCurvature: 1 / curvature });
+        if (history.length > 20) history.shift();
+      }
+    }
+    const direction = forces.slice();
+    const alpha = [];
+    for (let i = history.length - 1; i >= 0; i--) {
+      const pair = history[i];
+      alpha[i] = dot(pair.displacement, direction) * pair.inverseCurvature;
+      for (let k = 0; k < direction.length; k++) direction[k] -= alpha[i] * pair.gradientChange[k];
+    }
+    // Initial diagonal stiffness in eV/Å², as in ASE LBFGS.
+    for (let k = 0; k < direction.length; k++) direction[k] /= 70;
+    for (let i = 0; i < history.length; i++) {
+      const pair = history[i];
+      const beta = dot(pair.gradientChange, direction) * pair.inverseCurvature;
+      for (let k = 0; k < direction.length; k++) direction[k] += (alpha[i] - beta) * pair.displacement[k];
+    }
+    const scale = Math.min(1, 0.15 / maxNorm(direction));
+    displacement = direction.map(v => v * scale);
+    for (let i = 0; i < positions.length; i++) positions[i] += displacement[i];
+    previousForces = forces;
+  };
+}
+
 function normals(seed) {
   // Mulberry32 with Box–Muller normal sampling.
   function uniform() {
@@ -109,36 +167,17 @@ export async function simulate(structure, config, onFrame) {
       if (step % stride === 0 || step === config.steps) record(kinetic());
     }
   } else {
-    // FIRE relaxation in Cartesian coordinates with unit optimizer masses.
-    let dt = 0.1,
-      alpha = 0.1,
-      positive = 0;
+    const optimizer = structure.browser_optimizer === 'LBFGS' ? 'LBFGS' : 'FIRE';
+    const advance = optimizer === 'LBFGS' ? lbfgsStep() : fireStep(velocity);
     record();
     while (step < config.steps && maxNorm(state.forces) > config.fmax) {
-      const f = state.forces;
-      if (dot(velocity, f) > 0) {
-        const ratio = Math.sqrt(dot(velocity, velocity) / dot(f, f));
-        for (let i = 0; i < x.length; i++)
-          velocity[i] = (1 - alpha) * velocity[i] + alpha * ratio * f[i];
-        if (++positive > 5) {
-          dt = Math.min(1, 1.1 * dt);
-          alpha *= 0.99;
-        }
-      } else if (step) {
-        velocity.fill(0);
-        dt *= 0.5;
-        alpha = 0.1;
-        positive = 0;
-      }
-      for (let i = 0; i < x.length; i++) velocity[i] += dt * f[i];
-      const scale = Math.min(dt, 0.15 / Math.max(maxNorm(velocity), 1e-30));
-      for (let i = 0; i < x.length; i++) x[i] += scale * velocity[i];
+      advance(x, state.forces, step);
       state = await evaluate(x);
       step++;
       record();
     }
     result.converged = maxNorm(state.forces) <= config.fmax;
-    result.optimizer = 'FIRE';
+    result.optimizer = optimizer;
   }
   result.coordinates = triples(x);
   result.energy = state.energy;

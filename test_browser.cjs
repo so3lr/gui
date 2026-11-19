@@ -125,6 +125,26 @@ async function main() {
     await page.goto(new URL('?example=ala15&view=structure', page.url()).href);
     await page.locator('#action:not(:disabled)').waitFor();
     assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-m');
+    await page.goto(new URL('?example=paper-benchmark-torsionnet500', page.url()).href);
+    await page.locator('#action:not(:disabled)').waitFor();
+    assert.equal(await page.locator('#force-limit').inputValue(), '0.01');
+    assert.equal(await page.locator('#max-steps').inputValue(), '2000');
+    assert.ok(await page.locator('#setup').evaluate(form => form.checkValidity()));
+    await page.click('#action');
+    await waitForResult();
+    assert.match(await page.locator('#measurements').textContent(), /Converged/);
+    const torsionDownload = page.waitForEvent('download');
+    await page.click('#save-trajectory');
+    const torsionXYZ = await readFile(await (await torsionDownload).path(), 'utf8');
+    assert.match(torsionXYZ, /optimizer="LBFGS"/);
+    const lastAtoms = torsionXYZ.trim().split('\n').slice(-28).map(line => line.split(/\s+/).slice(1).map(Number));
+    assert.ok(lastAtoms.every(atom => atom.length === 6 && Math.hypot(...atom.slice(3)) <= 0.01));
+    // The first four atoms span the inter-ring bond in the deposited XYZ.
+    const bonds = lastAtoms.slice(0, 3).map((a, i) => a.slice(0, 3).map((v, k) => lastAtoms[i+1][k] - v));
+    const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+    const n1 = cross(bonds[0], bonds[1]), n2 = cross(bonds[1], bonds[2]);
+    const cosine = n1.reduce((sum, v, i) => sum + v*n2[i], 0) / (Math.hypot(...n1) * Math.hypot(...n2));
+    assert.ok(Math.abs(cosine) > Math.cos(3 * Math.PI / 180), 'Final inter-ring torsion within 3° of planar');
     assert.deepEqual(calculations, []);
   } finally {
     await browser.close();

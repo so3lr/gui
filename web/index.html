@@ -63,8 +63,8 @@
           <label><input type="radio" name="potential" value="so3lr-tauri-l"><span>L</span></label>
         </div></fieldset>
         <div class="extra calculation-inputs">
-          <label data-method="relax">Force limit (eV/Å)<input id="force-limit" type="number" value="0.05" min="0.001" max="1" step="0.001" required></label>
-          <label data-method="relax">Maximum steps<input id="max-steps" type="number" value="100" min="1" max="300" step="1" required></label>
+          <label data-method="relax">Force limit (eV/Å)<input id="force-limit" type="number" value="0.01" min="0.001" max="1" step="0.001" required></label>
+          <label data-method="relax">Maximum steps<input id="max-steps" type="number" value="100" min="1" max="2000" step="1" required></label>
           <label data-method="md" hidden>Temperature (K)<input id="md-temp" type="number" min="1" max="2000" step="any" value="300" required></label>
           <label data-method="md" hidden>Time step (fs)<input id="md-dt" type="number" min="0.05" max="2" step="any" value="1.0" required></label>
           <label data-method="md" hidden>MD steps<input id="md-steps" type="number" min="1" max="1000000" step="1" value="1000" required></label>

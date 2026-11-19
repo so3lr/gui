@@ -30,7 +30,7 @@ def validate_periodic_geometry(cell, positions):
     return box
 
 
-def run_periodic(elements, coordinates, cell, *, model, precision, task, steps=100, fmax=0.05, progress=None, on_frame=None):
+def run_periodic(elements, coordinates, cell, *, model, precision, task, steps=100, fmax=0.01, progress=None, on_frame=None):
     """Run on the caller's active JAX device and precision context."""
     from so3lr import So3lrCalculator
 
