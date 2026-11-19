@@ -209,7 +209,7 @@ function loadMolecule(entry,config) {
   byId('md-dt').value=config?.timestep??byId('md-dt').defaultValue;
   if(config?.precision)byId('precision').value=config.precision;
   const radio=Array.from(document.querySelectorAll('input[name=potential]')).find(el=>el.value===config?.model);
-  (radio??document.querySelector('input[name=potential][value="so3lr-tauri-m"]')).checked=true;
+  (radio??document.querySelector('input[name=potential][checked]')).checked=true;
   setupDevices(hostStatus,config?.device??byId('device').value);
   configureMethod();
   displayStructure(entry);
@@ -220,7 +220,9 @@ function getSourceLink(entry){
   return entry.source_url?.startsWith('https://')?entry.source_url:null;
 }
 function liveConfig(entry){
-  if(entry.result.recording?.production_duration_fs || entry.config.steps>1000000)
+  if(entry.result.recording?.production_duration_fs)
+    return {task:'md',steps:100,temperature:entry.config.temperature};
+  if(entry.config.steps>1000000)
     return {task:'md',steps:100,temperature:entry.config.temperature,model:entry.config.model};
   return entry.config;
 }

@@ -20,6 +20,10 @@ async function main() {
     await page.goto(process.env.TEST_URL || 'http://localhost:8000/gui/');
     await page.locator('#scrub').waitFor({ state: 'visible' });
 
+    const selectedModel = page.locator('input[name=potential]:checked');
+    assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-s');
+    assert.match(await page.locator('#provenance').textContent(), /Tauri M/);
+
     for (const { id, model, e, f } of reference) {
       const actual = await page.evaluate(
         async ({ id, model }) => {
@@ -97,6 +101,7 @@ async function main() {
     const xyz = await readFile(await (await pending).path(), 'utf8');
     const energies = [...xyz.matchAll(/\benergy=([-+0-9.eE]+)/g)].map((m) => Number(m[1]));
     assert.ok(energies.length > 1 && energies.at(-1) < energies[0]);
+    assert.match(xyz, /model=so3lr-tauri-s/);
     assert.match(xyz, /optimizer="FIRE"/);
     await page.click('#import');
     await page.click('#smiles-tab');
