@@ -8,7 +8,7 @@ Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe
 Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At
 `.trim().split(/\s+/));
 
-function validate({ elements, coordinates, charge }) {
+export function validate({ elements, coordinates, charge }) {
   if (!Array.isArray(elements) || elements.length < 2 || elements.length > 256) {
     throw new Error('An isolated structure must contain 2 to 256 atoms.');
   }

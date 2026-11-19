@@ -12,7 +12,7 @@ From the directory containing this README, run the following command. On first l
 uv run --locked serve.py --port 8773
 ```
 
-Open the workbench in your browser. The first view plays the Ala15 recording. Playback starts paused when the browser requests reduced motion. During optimization and molecular dynamics, the viewer follows the latest saved geometry and shows its step. Periodic optimization updates the unit cell too. A refresh in a tab with an active calculation reconnects to that job. The static interface can browse the library and replay bundled results offline. SMILES generation, trajectory import and new calculations use the local Python service. [Open SO3LR](http://127.0.0.1:8773/)
+Open the workbench in your browser. The first view plays the Ala15 recording. Playback starts paused when the browser requests reduced motion. During optimization and molecular dynamics, the viewer follows the latest saved geometry and shows its step. Periodic optimization updates the unit cell too. A refresh in a tab with an active calculation reconnects to that job. The static interface can browse the library, replay bundled results and build structures from SMILES. Trajectory import and new calculations use the local Python service. [Open SO3LR](http://127.0.0.1:8773/)
 
 ## Explore the 1 ns Ala15 trajectory
 
@@ -30,7 +30,7 @@ Open **Examples** to see all 10 runnable structures on one page. Each card shows
 
 ## Enter your own structure
 
-- **SMILES** under **Add XYZ or SMILES** accepts strings such as `CCO` and `C[NH3+]`. RDKit preserves specified stereochemistry and formal charge, adds hydrogens and generates a seeded ETKDGv3 conformer. Where parameters are available, it refines the geometry using MMFF94 or UFF. For disconnected inputs, the builder places fragments 3.5 Å apart along x.
+- **SMILES** under **Add XYZ or SMILES** accepts strings such as `CCO` and `C[NH3+]`. RDKit preserves specified stereochemistry and formal charge, adds hydrogens and generates a seeded ETKDGv3 conformer. Where parameters are available, it refines the geometry using MMFF94 or UFF. For disconnected inputs, the builder places fragments 3.5 Å apart along x. Without the local service, as on the hosted page, the browser builds the structure with [OpenChemLib](https://github.com/cheminfo/openchemlib-js) instead: one seeded conformer, then up to 500 MMFF94 minimization steps. Its geometries can differ slightly from RDKit's.
 - **XYZ coordinates** opens or pastes a single plain molecular XYZ in ångströms. An integer `charge=` in the comment sets the molecular charge.
 - **Run history → Open trajectory** imports consistently ordered XYZ or extended XYZ frames. Fully periodic frames use three lattice vectors and three periodic axes. For molecular MD without `time_fs`, enter the time between saved frames. Imports support up to 5,000 frames and 500,000 atom positions, with up to 256 atoms in an isolated frame or 50,000 in a periodic frame. Charts use the available data. Coordinates suffice for molecular RMSD, lattice vectors for cell volume, and archived kinetic energies or momenta for kinetic energy.
 
@@ -53,6 +53,8 @@ uv run --locked --extra cuda12 serve.py --port 8773
 ## Sources and attribution
 
 The core molecular inputs include aspirin imported from the SMILES `CC(=O)Oc1ccccc1C(=O)O` (PubChem CID 2244; the same seeded conformer is bundled for offline use), the stacked JSCH-71 guanine–cytosine pair, the first MD22 frame of docosahexaenoic acid, and two capped peptides. **Ala4** is the MD22 42-atom Ac-(Ala)₃-NHMe example with 100 conformers from the SO3LR test file. Use **Source XYZ** for the original peptide files. The Ala4 example includes a 50 fs replay. [MD22 data](https://www.sgdml.org/) · [MD22 paper](https://doi.org/10.1126/sciadv.adf0873) · [Ala4 source](https://github.com/general-molecular-simulations/so3lr/blob/e13d51b094bd7e2e7b8a4758aacdbafea9e82819/tests/test_data/ac.xyz) · [Ala15 source](https://github.com/general-molecular-simulations/so3lr/blob/e13d51b094bd7e2e7b8a4758aacdbafea9e82819/examples/data/ala15_folded.xyz)
+
+The browser SMILES builder uses OpenChemLib 9.25.1 (BSD-3-Clause), bundled with its licence in `web/vendor/openchemlib/`; `resources.json` keeps only its `cod/` and `forcefield/` entries. [OpenChemLib](https://github.com/cheminfo/openchemlib-js)
 
 Kabylda and coauthors released the Tauri paper data under CC BY 4.0. The library includes representative geometries for larger benchmark collections. The catalog identifies the selected archive members and frames. Additional upstream attributions are listed in the coverage notes. The header and favicon use the orbital mark from the SO3LR documentation. [Zenodo release](https://doi.org/10.5281/zenodo.22920714) · [Molecular benchmark catalog](web/paper-catalog.json) · [Coverage and upstream credits](benchmarks/paper-examples.md) · [SO3LR documentation](https://so3lr.github.io/)
 

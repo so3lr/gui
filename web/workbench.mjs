@@ -239,7 +239,9 @@ async function recording(structure){
   loadMolecule(structure,liveConfig(entry));
   addResult(entry,0);
 }
-function buildFromSmiles(smiles,signal) {
+async function buildFromSmiles(smiles,signal) {
+  // Without the local service, build in the browser (OpenChemLib instead of RDKit).
+  if(!engine)return (await import('./smiles-browser.mjs')).buildInBrowser(smiles);
   return request('api/smiles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({smiles}),signal});
 }
 async function selectExample(item,{replay=!!item.recording,scroll=true,play=false}={}){
@@ -523,12 +525,14 @@ byId('import').onclick=()=>{
 };
 byId('smiles-pane').onsubmit=async event=>{
   event.preventDefault();
-  if(!engine||smilesRequest)return;
+  if(smilesRequest)return;
   const input=byId('smiles-text'),button=byId('build-smiles'),controller=new AbortController();
   smilesRequest=controller;
   const smiles=input.value.trim();byId('smiles-error').textContent='';
   input.disabled=true;button.disabled=true;button.textContent='Building geometry…';
   try {
+    await new Promise(resolve=>setTimeout(resolve));
+
     const built=await buildFromSmiles(smiles,controller.signal);
     if(!controller.signal.aborted && byId('importer').open && !byId('smiles-pane').hidden) {
       loadMolecule(built);byId('importer').close();flash('Built '+built.elements.length+' atoms · total charge '+built.charge+' e.');
@@ -626,7 +630,7 @@ async function initialize(){
     const startup=job?.id?Promise.resolve():selectExample(preset,{replay:query.get('view')!=='structure' && !!preset.recording,scroll:false,play:!example});
     const online=await engineCheck;engine=online?.engine==='so3lr';hostStatus=online;
     byId('local-guide').hidden=engine;
-    if(!engine){byId('smiles-help').textContent='Start the local SO3LR server to generate 3D coordinates from SMILES.';byId('build-smiles').disabled=true;}
+    if(!engine)byId('smiles-help').textContent='Build a 3D starting geometry with explicit hydrogens in your browser. Use @ or @@ to specify a chiral center.';
     await startup;
     setupDevices(online,byId('device').value);updateAction();
     if(engine && job?.id && job.config && job.structure){
