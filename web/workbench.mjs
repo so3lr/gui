@@ -406,8 +406,8 @@ function runInBrowser(structure,config) {
       byId('view-kind').textContent=(config.task==='md'?'Live MD':'Live optimization')+' · Step '+data.step;
       byId('engine-note').textContent='Step '+data.step+' / '+config.steps;
     };
-    const {id,elements,coordinates,browser_optimizer}=structure;
-    worker.postMessage({structure:{id,elements,coordinates,browser_optimizer},config});
+    const {id,elements,coordinates}=structure;
+    worker.postMessage({structure:{id,elements,coordinates},config});
   });
   return promise.finally(()=>{worker.terminate();cancel.hidden=true;cancelBrowserRun=null;});
 }

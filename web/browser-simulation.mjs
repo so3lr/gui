@@ -13,29 +13,6 @@ function maxNorm(x) {
   for (let i = 0; i < x.length; i += 3) max = Math.max(max, Math.hypot(x[i], x[i + 1], x[i + 2]));
   return max;
 }
-function fireStep(velocity) {
-  let dt = 0.1, alpha = 0.1, positive = 0;
-  return (x, f, step) => {
-    if (dot(velocity, f) > 0) {
-      const ratio = Math.sqrt(dot(velocity, velocity) / dot(f, f));
-      for (let i = 0; i < x.length; i++)
-        velocity[i] = (1 - alpha) * velocity[i] + alpha * ratio * f[i];
-      if (++positive > 5) {
-        dt = Math.min(1, 1.1 * dt);
-        alpha *= 0.99;
-      }
-    } else if (step) {
-      velocity.fill(0);
-      dt *= 0.5;
-      alpha = 0.1;
-      positive = 0;
-    }
-    for (let i = 0; i < x.length; i++) velocity[i] += dt * f[i];
-    const scale = Math.min(dt, 0.15 / Math.max(maxNorm(velocity), 1e-30));
-    for (let i = 0; i < x.length; i++) x[i] += scale * velocity[i];
-  };
-}
-
 // Limited-memory BFGS in Cartesian coordinates. The two-loop recursion
 // applies an inverse Hessian approximation to the negative energy gradient.
 function lbfgsStep() {
@@ -88,8 +65,7 @@ export async function simulate(structure, config, onFrame) {
   const z = structure.elements.map((el) => symbols.indexOf(el));
   const mass = z.map((i) => masses[i]),
     massSum = mass.reduce((a, b) => a + b, 0);
-  const x = Float64Array.from(structure.coordinates.flat()),
-    velocity = new Float64Array(x.length);
+  const x = Float64Array.from(structure.coordinates.flat());
   const evaluate = createForceEvaluator(config.model, z, config.charge);
   const result = {
     frames: [],
@@ -113,6 +89,7 @@ export async function simulate(structure, config, onFrame) {
     onFrame(step, frame);
   }
   if (config.task === 'md') {
+    const velocity = new Float64Array(x.length);
     const dt = config.timestep * fsInAseUnits,
       decay = Math.exp(-0.01 * config.timestep);
     const noiseScale = Math.sqrt(-Math.expm1(-0.02 * config.timestep));
@@ -167,17 +144,16 @@ export async function simulate(structure, config, onFrame) {
       if (step % stride === 0 || step === config.steps) record(kinetic());
     }
   } else {
-    const optimizer = structure.browser_optimizer === 'LBFGS' ? 'LBFGS' : 'FIRE';
-    const advance = optimizer === 'LBFGS' ? lbfgsStep() : fireStep(velocity);
+    const advance = lbfgsStep();
     record();
     while (step < config.steps && maxNorm(state.forces) > config.fmax) {
-      advance(x, state.forces, step);
+      advance(x, state.forces);
       state = await evaluate(x);
       step++;
       record();
     }
     result.converged = maxNorm(state.forces) <= config.fmax;
-    result.optimizer = optimizer;
+    result.optimizer = 'LBFGS';
   }
   result.coordinates = triples(x);
   result.energy = state.energy;

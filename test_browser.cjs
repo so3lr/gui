@@ -105,7 +105,7 @@ async function main() {
     const energies = [...xyz.matchAll(/\benergy=([-+0-9.eE]+)/g)].map((m) => Number(m[1]));
     assert.ok(energies.length > 1 && energies.at(-1) < energies[0]);
     assert.match(xyz, /model=so3lr-tauri-s/);
-    assert.match(xyz, /optimizer="FIRE"/);
+    assert.match(xyz, /optimizer="LBFGS"/);
     await page.click('#import');
     await page.click('#smiles-tab');
     await page.locator('#smiles-text').fill('C[NH3+]');
