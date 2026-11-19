@@ -101,7 +101,7 @@ def validate(payload):
         raise ValueError("Choose mixed or float32 precision.")
     requested_device = payload.get("device", "auto")
     device, _ = choose_device(requested_device, precision)
-    steps = payload.get("steps", 100)
+    steps = payload.get("steps", 1000 if task == "md" else 100)
     fmax = payload.get("fmax", 0.05)
     if task == "relax":
         if type(steps) is not int or not 1 <= steps <= 300:

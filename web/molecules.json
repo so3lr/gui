@@ -948,6 +948,7 @@
   },
   {
     "id": "ala15_folded",
+    "default_model": "so3lr-tauri-m",
     "name": "Ala15",
     "formula": "C48H82N16O16",
     "charge": 0,

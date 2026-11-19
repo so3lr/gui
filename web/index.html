@@ -67,11 +67,11 @@
           <label data-method="relax">Maximum steps<input id="max-steps" type="number" value="100" min="1" max="300" step="1" required></label>
           <label data-method="md" hidden>Temperature (K)<input id="md-temp" type="number" min="1" max="2000" step="any" value="300" required></label>
           <label data-method="md" hidden>Time step (fs)<input id="md-dt" type="number" min="0.05" max="2" step="any" value="1.0" required></label>
-          <label data-method="md" hidden>MD steps<input id="md-steps" type="number" min="1" max="1000000" step="1" value="100" required></label>
+          <label data-method="md" hidden>MD steps<input id="md-steps" type="number" min="1" max="1000000" step="1" value="1000" required></label>
           <label>Total charge (e)<input id="charge" type="number" step="1" min="-10" max="10" value="0" required></label>
         </div>
         <div id="md-settings" data-method="md" hidden>
-          <div class="md-duration"><span>Simulated time</span><output id="duration" for="md-dt md-steps">100 fs</output></div>
+          <div class="md-duration"><span>Simulated time</span><output id="duration" for="md-dt md-steps">1 ps</output></div>
         </div>
         <div class="property device-row" hidden><label for="precision">Model precision</label><div class="device-choice selectbox"><select id="precision"><option value="mixed">Mixed</option><option value="float32">Float32</option></select><em data-glyph="down"></em></div></div>
         <div class="property device-row" hidden><label for="device">Compute device</label><div class="device-choice selectbox"><select id="device"><option value="auto">Automatic</option></select><em data-glyph="down"></em></div></div>

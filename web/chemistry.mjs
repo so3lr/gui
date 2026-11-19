@@ -105,7 +105,7 @@ print(f"Optimization converged: {converged} (steps: {optimizer.nsteps})")
 `;
   }
   if (task === 'md') {
-    const steps = parameter(params.steps, 100, 1, 1000000, 'MD steps', true);
+    const steps = parameter(params.steps, 1000, 1, 1000000, 'MD steps', true);
     const temperature = parameter(params.temperature, 300, 1, 2000, 'temperature (K)');
     const timestep = parameter(params.timestep, 1.0, 0.05, 2, 'time step (fs)');
     if (params.seed == null) imports = 'from random import randint';
