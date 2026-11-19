@@ -16,7 +16,9 @@ cmake -S iree -B host "${runtime_flags[@]}" -DIREE_HAL_EXECUTABLE_LOADER_STATIC_
 cmake --build host --target iree-flatcc-cli iree-c-embed-data
 mkdir -p "$out"
 for model in s m l; do
-  for shape in 16:240 32:992 80:2400 258:8192; do
+  peptide_edges=4352
+  if [[ $model == l ]]; then peptide_edges=5632; fi
+  for shape in 8:32 16:240 18:224 34:640 32:992 66:1536 80:2400 166:"$peptide_edges" 258:8192; do
     atoms=${shape%:*}
     neighbors=${shape#*:}
     "$PYTHON" "$src/export.py" "$atoms" "$neighbors" "$model" force.mlir

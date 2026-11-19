@@ -1,12 +1,5 @@
 import { createImports } from './browser-runtime/proactor.mjs';
 
-const buckets = [
-  [16, 240],
-  [32, 992],
-  [80, 2400],
-  [258, 8192],
-];
-
 async function decompress(url) {
   const response = await fetch(url);
   if (!response.ok) throw Error('Could not load the browser model (' + response.status + ').');
@@ -78,6 +71,19 @@ export function createForceEvaluator(model, species, charge) {
   const key = { 'so3lr-tauri-s': 's', 'so3lr-tauri-m': 'm', 'so3lr-tauri-l': 'l' }[model];
   if (!key) throw Error('Unknown SO3LR model.');
   const cutoff = key === 'l' ? 5 : 4.5;
+  // Select the smallest suitable workload; denser geometries can promote
+  // to a larger kernel without dropping neighbors. L has a longer cutoff.
+  const buckets = [
+    [8, 32],
+    [16, 240],
+    [18, 224],
+    [34, 640],
+    [32, 992],
+    [66, 1536],
+    [80, 2400],
+    [166, key === 'l' ? 5632 : 4352],
+    [258, 8192],
+  ];
   let capacity = 0,
     kernel;
   return async (x) => {
