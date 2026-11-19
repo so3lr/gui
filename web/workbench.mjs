@@ -202,7 +202,8 @@ function loadMolecule(entry,config) {
   byId('scope-control').hidden=!(entry.focus_range||entry.focus_indices);
   byId('structure-scope').options[0].textContent=entry.focus_label??'Solute';
   byId('structure-scope').value=entry.focus_range||entry.focus_indices?'solute':'cell';
-  byId('force-limit').value=config?.fmax??0.05;
+  const forceLimit=byId('force-limit');
+  forceLimit.value=config?.fmax??forceLimit.defaultValue;
   byId('max-steps').value=(config?.task==='relax'?config.steps:null)??entry.relax_steps??100;
   const mdSteps=byId('md-steps');
   mdSteps.value=(config?.task==='md'?config.steps:null)??mdSteps.defaultValue;

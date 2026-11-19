@@ -102,10 +102,10 @@ def validate(payload):
     requested_device = payload.get("device", "auto")
     device, _ = choose_device(requested_device, precision)
     steps = payload.get("steps", 1000 if task == "md" else 100)
-    fmax = payload.get("fmax", 0.05)
+    fmax = payload.get("fmax", 0.01)
     if task == "relax":
-        if type(steps) is not int or not 1 <= steps <= 300:
-            raise ValueError("Use 1–300 relaxation steps.")
+        if type(steps) is not int or not 1 <= steps <= 2000:
+            raise ValueError("Use 1–2,000 relaxation steps.")
         if not real(fmax) or not 0.001 <= fmax <= 1.0:
             raise ValueError("The convergence threshold must be 0.001–1.0 eV/Å.")
     md = {}

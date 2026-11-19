@@ -125,6 +125,11 @@ async function main() {
     await page.goto(new URL('?example=ala15&view=structure', page.url()).href);
     await page.locator('#action:not(:disabled)').waitFor();
     assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-m');
+    await page.goto(new URL('?example=paper-benchmark-torsionnet500', page.url()).href);
+    await page.locator('#action:not(:disabled)').waitFor();
+    assert.equal(await page.locator('#force-limit').inputValue(), '0.01');
+    assert.equal(await page.locator('#max-steps').inputValue(), '2000');
+    assert.ok(await page.locator('#setup').evaluate(form => form.checkValidity()));
     assert.deepEqual(calculations, []);
   } finally {
     await browser.close();

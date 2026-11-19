@@ -96,8 +96,8 @@ export function makePython(structure, model, task, params = {}, nativeSource = '
   let mdSettings = '';
   let calculation = '';
   if (task === 'relax') {
-    const fmax = parameter(params.fmax, 0.05, 0.001, 1, 'force tolerance (eV/Å)');
-    const steps = parameter(params.steps, 100, 1, 300, 'optimization steps', true);
+    const fmax = parameter(params.fmax, 0.01, 0.001, 1, 'force tolerance (eV/Å)');
+    const steps = parameter(params.steps, 100, 1, 2000, 'optimization steps', true);
     imports = 'from ase.optimize import BFGS';
     calculation = `optimizer = BFGS(atoms, logfile=None)
 converged = optimizer.run(fmax=${fmax}, steps=${steps})
@@ -137,8 +137,8 @@ print(f"Final maximum force (eV/Å): {np.linalg.norm(sample['forces'], axis=1).m
   if (periodic) {
     if(!Array.isArray(structure.cell)||structure.cell.length!==3||structure.cell.some(row=>row.length!==3||!row.every(Number.isFinite)))throw Error('Supply a three-dimensional periodic cell.');
     if(task==='md'||structure.charge!==0||!nativeSource.includes('def run_periodic('))throw Error('Use a neutral periodic energy or optimization job.');
-    const steps=task==='relax'?parameter(params.steps,100,1,300,'optimization steps',true):1;
-    const fmax=task==='relax'?parameter(params.fmax,.05,.001,1,'force tolerance'):0.05;
+    const steps=task==='relax'?parameter(params.steps,100,1,2000,'optimization steps',true):1;
+    const fmax=task==='relax'?parameter(params.fmax,.01,.001,1,'force tolerance'):0.01;
     calculation=`result = run_periodic(atoms.get_chemical_symbols(), atoms.positions, atoms.cell.array, model=model,
                           precision=precision, task="${task}", steps=${steps}, fmax=${fmax})
 write_periodic_result("so3lr_periodic.extxyz", atoms.get_chemical_symbols(), result, model, precision)

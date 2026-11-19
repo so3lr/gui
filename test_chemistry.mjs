@@ -20,3 +20,12 @@ test('MD scripts identify saved frames and include CUDA for automatic or GPU sel
     assert.equal(script.includes('jax[cuda12]'), device !== 'cpu');
   }
 });
+
+test('Python optimization exports accept the larger step budget and tighter default force limit', () => {
+  const settings = {steps: 2000};
+  const model = 'so3lr-tauri-s';
+  assert.match(makePython(molecule, model, 'relax', settings), /optimizer\.run\(fmax=0\.01, steps=2000\)/);
+  const periodic = {...molecule, cell:[[10,0,0],[0,10,0],[0,0,10]], pbc:[true,true,true]};
+  const source = readFileSync(new URL('./web/periodic_job.py', import.meta.url), 'utf8');
+  assert.match(makePython(periodic, model, 'relax', settings, source), /steps=2000, fmax=0\.01/);
+});
