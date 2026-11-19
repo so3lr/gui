@@ -234,7 +234,7 @@ def analyze_file(payload):
         result["units"]["cell_volume"] = "Å³"
     if len(integrators) == 1:
         engine, integrator = integrators.pop()
-        if (engine, integrator) in {("ase", "ASE Langevin"), ("jax", "JAX BAOAB Langevin"),
+        if (engine, integrator) in {("wasm", "BAOAB Langevin"), ("ase", "ASE Langevin"), ("jax", "JAX BAOAB Langevin"),
                                     ("jax", "JAX-MD Nosé–Hoover chain")}:
             result["md"] = dict(engine=engine, integrator=integrator)
     if len(force_backends) == 1:

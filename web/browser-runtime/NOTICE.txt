@@ -1,0 +1,10 @@
+SO3LR-Tauri S, M and L model weights, copyright 2026 Adil Kabylda.
+These packs contain WebAssembly/VM bytecode conversions of the 2606 pretrained
+weights from SO3LR revision e13d51b094bd7e2e7b8a4758aacdbafea9e82819.
+The weights and conversions are licensed under CC BY-NC 4.0.
+https://github.com/general-molecular-simulations/so3lr
+https://creativecommons.org/licenses/by-nc/4.0/
+
+SO3LR code is MIT licensed. The runtime incorporates IREE (Apache-2.0 with
+LLVM exception), flatcc and Emscripten. License texts accompany these files
+in licenses/. The reproducible build and runtime changes are in browser-build/.

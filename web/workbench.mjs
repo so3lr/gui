@@ -8,10 +8,10 @@ import {glyph,mountGlyphs} from './glyphs.mjs';
 const byId = name => document.getElementById(name);
 const taskLabel = {energy:'Single-point energy',relax:'Geometry optimization',md:'Molecular dynamics',trajectory:'Imported trajectory'};
 const atomNames = {C:'Carbon',H:'Hydrogen',O:'Oxygen',N:'Nitrogen',F:'Fluorine',S:'Sulfur',P:'Phosphorus',Cl:'Chlorine'};
-const exampleRuns = [];
 const sourceFrames = new Map();
 const journal = [];
 let activeJob=null;
+let cancelBrowserRun=null;
 let molecule, engine = false, working = false, shown = null;
 let library, focusIndices=null;
 let selectedAtom = null, playback = 0, toastTimeout = 0;
@@ -71,33 +71,26 @@ function settings() {
     fmax:byId('force-limit').valueAsNumber,
   };
 }
-function exampleFor(config) {
-  if (!molecule || (molecule.source_frame??1)!==1) return;
-  return exampleRuns.find(row=>{
-    if(row.id!==molecule.id || row.task!==config.task || row.model!==config.model || row.charge!==config.charge)return false;
-    if((row.result.precision??'mixed')!==config.precision)return false;
-    if(config.device!=='auto' && config.device!==(row.result.device??'cpu'))return false;
-    return row.task==='relax' && row.fmax===config.fmax && row.steps===config.steps;
-  });
-}
 function canCalculate(structure) {
   const atoms=structure.atom_count??structure.elements?.length;
   return structure.calculation_allowed!==false && atoms>=2 && atoms<=256;
 }
 function updateAction() {
   if (!molecule || working) return;
-  const config=settings(), saved=exampleFor(config);
+  const config=settings();
   if(!canCalculate(molecule)){
     byId('action').disabled=true;byId('action').textContent='Structure preview';
     byId('python').hidden=true;
     byId('engine-note').textContent=molecule.calculation_note||'Local calculations support up to 256 atoms.';
     return;
   }
-  const label=engine?(config.task==='md'?'Run dynamics':'Run calculation'):saved?'View example result':'Download Python job';
-  byId('action').replaceChildren(glyph(engine||saved?'play':'code'),node('span',label));
+  const executable=engine || !molecule.cell;
+  byId('local-guide').hidden=executable;
+  const label=executable?(config.task==='md'?'Run dynamics':'Run optimization'):'Download Python job';
+  byId('action').replaceChildren(glyph(executable?'play':'code'),node('span',label));
   byId('action').disabled=false;
-  byId('engine-note').textContent=engine?'Local engine':saved?'Precomputed example':'';
-  byId('python').hidden=!engine&&!saved;
+  byId('engine-note').textContent=engine?'Local engine':executable?'On this device · CPU':'Periodic cell · local engine required';
+  byId('python').hidden=!executable;
 }
 function describeAtom() {
   const popup=byId('atom-pick');
@@ -107,7 +100,7 @@ function describeAtom() {
   popup.textContent=(atomNames[name]||name)+' '+(selectedAtom+1);
 }
 function haltPlayback() {
-  clearInterval(playback); playback=0;
+  cancelAnimationFrame(playback); playback=0;
   byId('animate').replaceChildren(glyph('play'));
   byId('animate').setAttribute('aria-label','Play trajectory');
   byId('animate').title='Play trajectory';
@@ -190,8 +183,8 @@ function loadMolecule(entry,config) {
   if(source){dataset.href=source;dataset.title=[entry.source||entry.description,entry.source_file].filter(Boolean).join(' · ')||'Dataset source';}
   framePicker.hidden=!(entry.conformer_count>1);
   const replay=byId('replay-peptide');
-  replay.textContent=entry.recording_label??'Open 50 fs example';
-  replay.hidden=!(entry.recording||(entry.id==='ala4' && (entry.source_frame??1)===1));
+  replay.textContent=entry.recording_label??'Open recording';
+  replay.hidden=!entry.recording;
   if(entry.xyz_file){
     sourceLink.href=entry.xyz_file;sourceLink.setAttribute('download','');sourceLink.textContent='Source XYZ';
     if(entry.conformer_count>1){
@@ -216,7 +209,7 @@ function loadMolecule(entry,config) {
   byId('md-dt').value=config?.timestep??byId('md-dt').defaultValue;
   if(config?.precision)byId('precision').value=config.precision;
   const radio=Array.from(document.querySelectorAll('input[name=potential]')).find(el=>el.value===config?.model);
-  (radio??document.querySelector('input[name=potential][value="so3lr-tauri-m"]')).checked=true;
+  (radio??document.querySelector('input[name=potential][checked]')).checked=true;
   setupDevices(hostStatus,config?.device??byId('device').value);
   configureMethod();
   displayStructure(entry);
@@ -227,12 +220,14 @@ function getSourceLink(entry){
   return entry.source_url?.startsWith('https://')?entry.source_url:null;
 }
 function liveConfig(entry){
-  if(entry.result.recording?.production_duration_fs || entry.config.steps>1000000)
+  if(entry.result.recording?.production_duration_fs)
+    return {task:'md',steps:100,temperature:entry.config.temperature};
+  if(entry.config.steps>1000000)
     return {task:'md',steps:100,temperature:entry.config.temperature,model:entry.config.model};
   return entry.config;
 }
 async function recording(structure){
-  const saved=structure.recording?await request(structure.recording):exampleRuns.find(row=>row.id===structure.id && row.task==='md' && row.steps===100);
+  const saved=await request(structure.recording);
   if(!saved)throw Error('The recorded calculation could not be loaded.');
   const {result,id,...config}=saved;
   const entry={result,config,structure,provenance:result.recording?.figure||structure.recording_provenance||'Recorded example'};
@@ -318,7 +313,7 @@ function openResult(entry,initialFrame=entry.result.frames.length-1) {
   const uniform=multi && Number.isFinite(interval) && r.times_fs.every((t,i)=>Math.abs(t-r.times_fs[0]-i*interval)<1e-5);
   const sampling=multi?r.frames.length.toLocaleString()+' saved frames'+(uniform?' every '+formatTime(interval):''):'';
   const provenance=byId('provenance');
-  byId('result-heading').hidden=entry.structure.id==='ala15_folded' && c.task==='md';
+  byId('result-heading').hidden=ala15Replay || Boolean(r.analysis?.peptide);
   provenance.textContent=[entry.provenance,entry.structure.conformer_count>1?'Geometry '+(entry.structure.source_frame??1):'',resultModel(c),r.md?.integrator,r.periodic?.optimizer,sampling].filter(Boolean).join(' · ');
   byId('result-title').textContent=entry.structure.name+' · '+taskLabel[c.task];
   const metrics=[];
@@ -387,28 +382,52 @@ async function monitor(job) {
   }
 }
 byId('cancel-job').onclick=async()=>{
+  if(cancelBrowserRun){cancelBrowserRun();return;}
   if(!activeJob)return;
   const button=byId('cancel-job');button.disabled=true;button.textContent='Stopping…';
   try{await request('api/jobs/'+encodeURIComponent(activeJob.id)+'/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}
   catch(error){flash(error.message);button.disabled=false;button.textContent='Cancel run';}
 };
+function runInBrowser(structure,config) {
+  const worker=new Worker(new URL('./simulation-worker.mjs',import.meta.url),{type:'module'});
+  const cancel=byId('cancel-job');
+  cancel.hidden=false;cancel.disabled=false;cancel.textContent='Cancel run';
+  byId('engine-note').textContent='Loading SO3LR on this device…';
+  const promise=new Promise((resolve,reject)=>{
+    cancelBrowserRun=()=>resolve(null);
+    worker.onerror=event=>reject(Error(event.message||'The browser simulation worker stopped.'));
+    worker.onmessage=({data})=>{
+      if(data.error){reject(Error(data.error));return;}
+      if(data.result){resolve(data.result);return;}
+      const positions=structure.id==='ala15_folded'?alignedView(data.positions,structure.coordinates,structure.elements).positions:data.positions;
+      scene.positions(positions,null,null);
+      byId('view-status').hidden=false;
+      byId('view-kind').textContent=(config.task==='md'?'Live MD':'Live optimization')+' · Step '+data.step;
+      byId('engine-note').textContent='Step '+data.step+' / '+config.steps;
+    };
+    worker.postMessage({structure:{id:structure.id,elements:structure.elements,coordinates:structure.coordinates},config});
+  });
+  return promise.finally(()=>{worker.terminate();cancel.hidden=true;cancelBrowserRun=null;});
+}
 async function calculate(event) {
   event.preventDefault();if(working||!molecule||!canCalculate(molecule))return;
-  const config=settings(), saved=exampleFor(config);
-  if(!engine&&!saved){saveScript();return;}
+  const config=settings();
+  if(!engine && molecule.cell){saveScript();return;}
   clearOutput();displayStructure(molecule);lock(true);
   try{
+    if(config.task==='md')config.seed=Math.floor(Math.random()*101);
+    byId('action').textContent='Calculating…';
     if(engine){
-      if(config.task==='md')config.seed=Math.floor(Math.random()*101);
-      byId('action').textContent='Calculating…';
       const {id}=await request('api/calculate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...config,elements:molecule.elements,coordinates:molecule.coordinates,cell:molecule.cell,pbc:molecule.pbc})});
       await monitor({id,config,structure:molecule});
     }else{
-      const entry={result:saved.result,structure:molecule,config,provenance:'Recorded example'};
-      addResult(entry);
+      config.precision='float32';
+      const result=await runInBrowser(molecule,config);
+      if(!result){clearOutput();displayStructure(molecule);flash('Run cancelled.');return;}
+      addResult({result,structure:molecule,config,provenance:'Browser calculation'});
       byId('viewer').scrollIntoView({block:'start',behavior:'smooth'});
     }
-  }catch(e){byId('job-error').hidden=false;byId('job-error').textContent=e.message;}
+  }catch(e){clearOutput();displayStructure(molecule);byId('job-error').hidden=false;byId('job-error').textContent=e.message;}
   finally{lock(false);}
 }
 function loadText(text,title) {
@@ -544,13 +563,24 @@ document.querySelectorAll('[data-dismiss]').forEach(btn=>btn.onclick=()=>btn.clo
 byId('input-file').onchange=e=>handleFile(e.target.files[0]);
 byId('read-paste').onclick=()=>{try{loadText(byId('coordinates').value,'Imported molecule');}catch(e){byId('file-error').textContent=e.message;}};
 const zone=byId('filezone');zone.ondragover=e=>{e.preventDefault();zone.classList.add('dragging');};zone.ondragleave=()=>zone.classList.remove('dragging');zone.ondrop=e=>{e.preventDefault();zone.classList.remove('dragging');handleFile(e.dataTransfer.files[0]);};
+document.addEventListener('visibilitychange',()=>{if(document.hidden && playback)haltPlayback();});
 byId('scrub').oninput=e=>{haltPlayback();changeFrame(Number(e.target.value));};
 byId('animate').onclick=()=>{
   if(playback)return haltPlayback();
   const end=shown.result.frames.length-1;
   if(+byId('scrub').value>=end)changeFrame(0);
   byId('animate').replaceChildren(glyph('pause'));byId('animate').setAttribute('aria-label','Pause trajectory');byId('animate').title='Pause trajectory';
-  playback=setInterval(()=>{const n=+byId('scrub').value+1;changeFrame(n);if(n>=end)haltPlayback();},150);
+  const scrub=byId('scrub'), speed=byId('playback-speed');
+  let position=Number(scrub.value), previous=performance.now();
+  function advance(now) {
+    position+=Math.max(0,now-previous)*30*Number(speed.value)/1000;
+    previous=now;
+    const index=Math.min(end,Math.floor(position));
+    if(index!==Number(scrub.value))changeFrame(index);
+    if(index===end)haltPlayback();
+    else playback=requestAnimationFrame(advance);
+  }
+  playback=requestAnimationFrame(advance);
 };
 function saveTrajectory() {
   if(!shown)return;
@@ -615,21 +645,20 @@ async function initialize(){
   try{
     const local=['/','/index.html'].includes(location.pathname) && ['127.0.0.1','localhost','[::1]'].includes(location.hostname);
     engineCheck=local?request('api/status').catch(()=>null):Promise.resolve(null);
-    const [core,samples,paper]=await Promise.all(['molecules.json','examples.json','paper-catalog.json'].map(path=>request(path)));
+    const [core,paper]=await Promise.all(['molecules.json','paper-catalog.json'].map(path=>request(path)));
     const folded=core.find(s=>s.id==='ala15_folded');
     Object.assign(folded,{recording:'ala15-paper.json',recording_label:'Saved 500 ps trajectory',default_task:'md',source_url:'https://arxiv.org/html/2611.06237v1'});
     core.forEach(s=>s.group='Molecular examples');
     const items=[...core,...paper].filter(canCalculate);
     const atomCount=item=>item.atom_count??item.elements.length;
     items.sort((a,b)=>atomCount(a)-atomCount(b));
-    exampleRuns.push(...samples);
     library=createLibrary(items,item=>selectExample(item),canvas=>createScene(canvas,{interactive:false}));
     let job;try{job=JSON.parse(sessionStorage.getItem(sessionKey));}catch{}
     const query=new URLSearchParams(location.search),example=query.get('example');
     const preset=items.find(item=>item.id===(example==='ala15'?'ala15_folded':example))??folded;
     const startup=job?.id?Promise.resolve():selectExample(preset,{replay:query.get('view')!=='structure' && !!preset.recording,scroll:false,play:!example});
     const online=await engineCheck;engine=online?.engine==='so3lr';hostStatus=online;
-    byId('local-guide').hidden=engine;
+    byId('local-guide').hidden=true;
     if(!engine)byId('smiles-help').textContent='Build a 3D starting geometry with explicit hydrogens in your browser. Use @ or @@ to specify a chiral center.';
     await startup;
     setupDevices(online,byId('device').value);updateAction();

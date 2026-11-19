@@ -132,10 +132,11 @@ textarea{width:100%;border:1px solid #c6ccd5;border-radius:6px;padding:9px;font:
 .source-bar select{appearance:auto;border:1px solid #5d6269;color:#ebeef3;background:#34383e;border-radius:4px;padding:3px 5px;font:.8rem var(--mono)}
 .source-bar a{margin-left:auto;font-size:.76rem;color:#c5ccd6}
 .source-bar .glyph{width:13px;height:13px}
-.viewport-player{display:flex;align-items:center;gap:12px;padding:9px 18px;background:#282d34;border-top:1px solid #464b54}
+.viewport-player{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:9px 18px;background:#282d34;border-top:1px solid #464b54}
 .viewport-player button{display:grid;place-items:center;padding:5px 7px;color:var(--solar);border:1px solid #5f6773;border-radius:5px}
 .viewport-player button .glyph{width:14px;height:14px}
 .viewport-player input{flex:1;min-width:40px;accent-color:#ffae68;cursor:pointer}
+.viewport-player select{background:#34383e;color:#ebeef3;border:1px solid #5f6773;border-radius:5px;padding:3px;font:.74rem var(--mono)}
 .viewport-player output{font:.74rem var(--mono);color:#d6dde7}
 .view-options{display:grid;gap:6px;justify-items:stretch;flex:none}
 #setup .structure-source{margin:0 0 18px}

@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.26)
+project(browser C CXX)
+add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/../iree" iree)
+add_executable(force run.c "${CMAKE_CURRENT_BINARY_DIR}/../force.o")
+target_link_libraries(force PRIVATE iree::runtime iree::hal::drivers::local_sync::sync_driver iree::hal::local::loaders::static_library_loader)
+set_target_properties(force PROPERTIES SUFFIX ".mjs")
+target_link_options(force PRIVATE -O0 -g3 --js-library=${CMAKE_CURRENT_SOURCE_DIR}/proactor.js -sMODULARIZE=1 -sEXPORT_ES6=1 -sALLOW_MEMORY_GROWTH=1 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sEXPORTED_FUNCTIONS=_malloc,_free,_setup,_evaluate -sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32,HEAP32)
