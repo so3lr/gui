@@ -56,6 +56,25 @@ async function main() {
       );
     }
 
+    const promotion = await page.evaluate(async () => {
+      const {createForceEvaluator} = await import('./browser-force.mjs');
+      const {symbols} = await import('./atomic-data.mjs');
+      const structures = await (await fetch('molecules.json')).json();
+      const gc = structures.find(s => s.id === 'stacked-gc');
+      const make = () => createForceEvaluator('so3lr-tauri-l', gc.elements.map(el => symbols.indexOf(el)), gc.charge);
+      // A 1% contraction takes this geometry from 634 to 644 short-range pairs.
+      const x = gc.coordinates.flat(), contracted = x.map(v => v * 0.99);
+      const evaluate = make();
+      const original = await evaluate(x);
+      const promoted = await evaluate(contracted), fresh = await make()(contracted);
+      const restored = await evaluate(x);
+      return [[promoted, fresh], [restored, original]].map(([a,b]) => ({
+        energy: Math.abs(a.energy - b.energy),
+        force: Math.max(...a.forces.map((v,i) => Math.abs(v - b.forces[i]))),
+      }));
+    });
+    assert.ok(promotion.every(d => d.energy < 0.002 && d.force < 0.001), 'Neighbor capacity change');
+
     const populationError = await page.evaluate(async () => {
       const { result } = await (await fetch('ala15-paper.json')).json();
       const { analyzeFrames } = await import('./browser-analysis.mjs');

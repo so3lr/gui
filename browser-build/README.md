@@ -25,3 +25,9 @@ The separate MDTraj module computes the Ala15 DSSP fractions using the same libr
 Serve the GUI checkout's parent directory with the web tree mounted at `/gui/` (or set `TEST_URL` to another static subdirectory). Run `node test_browser.cjs` with Playwright available to Node and its Chromium browser installed. Set `BROWSER=webkit` to test with Playwright WebKit. The suite checks force components against float32 ASE reference values, the Ala15 DSSP fractions, and the molecular dynamics, optimization, import, export and cancellation controls.
 
 The reference fixture stores eV and eV/Å for each library geometry as supplied, including its total charge. It uses the locked `So3lrCalculator(model=..., precision="float32", lr_cutoff=100.)`. Tolerances are 0.002 eV for the total energy and 0.001 eV/Å for individual force components.
+
+## Timing browser runs
+
+Run `node benchmarks/browser-speed.cjs <baseline-gui-url> <candidate-gui-url>` with Playwright available to Node. Use a trailing slash for each GUI URL and optionally set `CHROME_PATH`. The benchmark runs MD and geometry optimization sequentially in the real simulation worker, discards model loading and the first two steps, and reports wall-clock milliseconds per subsequent step. Use the same browser and machine for both versions.
+
+The force evaluator chooses a compiled shape from the atom count and the number of real short-range pairs. Shapes include two padding atoms. Neighbor lists are rebuilt at each evaluation. A structure that becomes denser can move to a larger kernel during a run. The largest supported shape and model cutoffs are shared by both releases.
