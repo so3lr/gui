@@ -1,5 +1,7 @@
 # SO3LR
 
+Browse the examples online at **<https://so3lr.github.io/gui/>**; calculations need the local service below.
+
 Explore a 1 ns Ala15 trajectory, inspect molecular and periodic structures from the Tauri paper, or run SO3LR-Tauri S, M and L on your own structures. The workbench ships its example coordinates and recordings and runs calculations on the computer hosting the Python service.
 
 ## Start the workbench
