@@ -1,0 +1,6 @@
+# Generated runtime and unmodified license texts keep their upstream formatting.
+web/browser-runtime/*.mjs linguist-generated whitespace=-trailing-space
+web/browser-runtime/licenses/* whitespace=-trailing-space
+web/vendor/mdtraj/dssp.mjs linguist-generated
+# Blank context lines in a unified diff contain one space.
+browser-build/*.patch whitespace=-blank-at-eol

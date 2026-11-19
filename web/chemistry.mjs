@@ -1,12 +1,6 @@
-// Periodic-table order gives the elemental coverage of the public SO3LR Tauri models.
-const supported = new Set(`
-H He
-Li Be B C N O F Ne
-Na Mg Al Si P S Cl Ar
-K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr
-Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe
-Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At
-`.trim().split(/\s+/));
+import {symbols} from './atomic-data.mjs';
+
+const supported = new Set(symbols.slice(1));
 
 export function validate({ elements, coordinates, charge }) {
   if (!Array.isArray(elements) || elements.length < 2 || elements.length > 256) {

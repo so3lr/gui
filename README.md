@@ -1,8 +1,8 @@
 # SO3LR
 
-Browse the examples online at **<https://so3lr.github.io/gui/>**; calculations need the local service below.
+Run geometry optimization or molecular dynamics on your own device in the [SO3LR GUI](https://so3lr.github.io/gui/). Choose a structure, select Tauri S, M or L, and press **Run**. The first run downloads the selected model. The browser computes fresh forces on its CPU using WebAssembly and displays the trajectory as it runs.
 
-Explore a 500 ps Ala15 trajectory, inspect molecular and periodic structures from the Tauri paper, or run SO3LR-Tauri S, M and L on your own structures. The workbench ships its example coordinates and recordings and runs calculations on the computer hosting the Python service.
+Explore a 500 ps Ala15 trajectory, inspect molecular and periodic structures from the Tauri paper, or run SO3LR-Tauri S, M and L on your own structures. The opening Ala15 trajectory is a recording. Starting a calculation uses the current structure and settings.
 
 ## Start the workbench
 
@@ -12,7 +12,7 @@ From the directory containing this README, run the following command. On first l
 uv run --locked serve.py --port 8773
 ```
 
-Open the workbench in your browser. The first view plays the Ala15 recording. Playback starts paused when the browser requests reduced motion. During optimization and molecular dynamics, the viewer follows the latest saved geometry and shows its step. Periodic optimization updates the unit cell too. A refresh in a tab with an active calculation reconnects to that job. The static interface can browse the library, replay bundled results and build structures from SMILES. Trajectory import and new calculations use the local Python service. [Open SO3LR](http://127.0.0.1:8773/)
+Open the workbench in your browser. The first view plays the Ala15 recording. Playback starts paused when the browser requests reduced motion. During optimization and molecular dynamics, the viewer follows the latest saved geometry and shows its step. Periodic optimization updates the unit cell too. The local server can reconnect to an active calculation after a page refresh and supports trajectory import and periodic cell relaxation. A browser-only calculation runs while its tab stays open. [Open SO3LR](http://127.0.0.1:8773/)
 
 ## Explore the 500 ps Ala15 trajectory
 
@@ -36,9 +36,11 @@ Open **Examples** to see all 10 runnable structures on one page. Each card shows
 
 ## Run a calculation
 
-In **New calculation**, use **Add XYZ or SMILES** or choose a molecule from the **Example library**. Choose a SO3LR-Tauri model and a calculation type. The local service queues one job at a time and accepts 2–256 atoms. Isolated systems support BFGS geometry optimization and Langevin MD with integer total charge from −10 to +10 e. Neutral three-dimensionally periodic cells support relaxation of both atom positions and cell vectors using LBFGS. Periodic calculations use exact real-space neighbors with a 12 Å cutoff and particle-mesh Ewald electrostatics. Isolated calculations use a 100 Å long-range cutoff. Energies are in eV and forces in eV/Å. [SO3LR ASE calculator](https://so3lr.github.io/usage/ase/)
+In **New calculation**, use **Add XYZ or SMILES** or choose a molecule from the **Example library**. Choose a SO3LR-Tauri model and a calculation type. Browser calculations support isolated structures of 2–256 atoms and up to 8,192 directed short-range neighbor pairs. They use FIRE optimization or BAOAB Langevin dynamics, with float32 energies and forces. Large or dense structures take longer. The browser downloads model files from the site and keeps the input coordinates on the device. [Runtime build](browser-build/README.md) · [Model attribution and licenses](web/browser-runtime/NOTICE.txt)
 
-For **Molecular dynamics**, the default is 100 steps of 1.0 fs at 300 K. Each new MD run draws an integer seed from 0 through 100. The saved MD trajectory includes the seed used. Live simulations and **Export Python** use the same JAX BAOAB Langevin integrator with friction 0.01 fs⁻¹. A fixed center of mass leaves 3N−3 thermal degrees of freedom for live dynamics. Jobs of up to 2,000 steps retain up to 101 frames and longer jobs retain up to 1,001. Cancellation takes effect at an integration block boundary and retains the most recent completed frame.
+The optional local service queues one job at a time and accepts 2–256 atoms. Isolated systems support BFGS geometry optimization and Langevin MD with integer total charge from −10 to +10 e. Neutral three-dimensionally periodic cells support relaxation of both atom positions and cell vectors using LBFGS. Periodic calculations use exact real-space neighbors with a 12 Å cutoff and particle-mesh Ewald electrostatics. Isolated calculations use a 100 Å long-range cutoff. Energies are in eV and forces in eV/Å. [SO3LR ASE calculator](https://so3lr.github.io/usage/ase/)
+
+For **Molecular dynamics**, the default is 100 steps of 1.0 fs at 300 K. Each new MD run draws an integer seed from 0 through 100. The saved MD trajectory includes the seed used. The local service and **Export Python** use the same JAX BAOAB Langevin integrator with friction 0.01 fs⁻¹. A fixed center of mass leaves 3N−3 thermal degrees of freedom for live dynamics. Jobs of up to 2,000 steps retain up to 101 frames and longer jobs retain up to 1,001. The local service stops at an integration block boundary. Cancelling a browser job terminates its worker and restores the input structure.
 
 Live MD results include potential energy, kinetic energy, instantaneous temperature and heavy-atom RMSD. The interface colors atoms by element. **Save trajectory** writes available frame properties and the **Export Python** job can stream snapshots to disk. The Python export shares the workbench’s force and integration implementations.
 
@@ -52,7 +54,7 @@ uv run --locked --extra cuda12 serve.py --port 8773
 
 ## Sources and attribution
 
-The core molecular inputs include aspirin imported from the SMILES `CC(=O)Oc1ccccc1C(=O)O` (PubChem CID 2244; the same seeded conformer is bundled for offline use), the stacked JSCH-71 guanine–cytosine pair, the first MD22 frame of docosahexaenoic acid, and two capped peptides. **Ala4** is the MD22 42-atom Ac-(Ala)₃-NHMe example with 100 conformers from the SO3LR test file. Use **Source XYZ** for the original peptide files. The Ala4 example includes a 50 fs replay. [MD22 data](https://www.sgdml.org/) · [MD22 paper](https://doi.org/10.1126/sciadv.adf0873) · [Ala4 source](https://github.com/general-molecular-simulations/so3lr/blob/e13d51b094bd7e2e7b8a4758aacdbafea9e82819/tests/test_data/ac.xyz) · [Ala15 source](https://github.com/general-molecular-simulations/so3lr/blob/e13d51b094bd7e2e7b8a4758aacdbafea9e82819/examples/data/ala15_folded.xyz)
+The core molecular inputs include aspirin imported from the SMILES `CC(=O)Oc1ccccc1C(=O)O` (PubChem CID 2244; the same seeded conformer is bundled for offline use), the stacked JSCH-71 guanine–cytosine pair, the first MD22 frame of docosahexaenoic acid, and two capped peptides. **Ala4** is the MD22 42-atom Ac-(Ala)₃-NHMe example with 100 conformers from the SO3LR test file. Use **Source XYZ** for the original peptide files. [MD22 data](https://www.sgdml.org/) · [MD22 paper](https://doi.org/10.1126/sciadv.adf0873) · [Ala4 source](https://github.com/general-molecular-simulations/so3lr/blob/e13d51b094bd7e2e7b8a4758aacdbafea9e82819/tests/test_data/ac.xyz) · [Ala15 source](https://github.com/general-molecular-simulations/so3lr/blob/e13d51b094bd7e2e7b8a4758aacdbafea9e82819/examples/data/ala15_folded.xyz)
 
 The browser SMILES builder uses OpenChemLib 9.25.1 (BSD-3-Clause), bundled with its licence in `web/vendor/openchemlib/`; `resources.json` keeps only its `cod/` and `forcefield/` entries. [OpenChemLib](https://github.com/cheminfo/openchemlib-js)
 

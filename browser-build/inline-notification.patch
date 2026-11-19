@@ -1,0 +1,51 @@
+--- a/runtime/src/iree/async/platform/js/proactor.c
++++ b/runtime/src/iree/async/platform/js/proactor.c
+@@ -5,6 +5,7 @@
+ // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ 
+ #include "iree/async/platform/js/proactor.h"
++#include "iree/async/notification.h"
+ 
+ #include <string.h>
+ 
+@@ -491,8 +492,14 @@
+ static iree_status_t iree_async_proactor_js_create_notification(
+     iree_async_proactor_t* proactor, iree_async_notification_flags_t flags,
+     iree_async_notification_t** out_notification) {
+-  return iree_make_status(IREE_STATUS_UNAVAILABLE,
+-                          "JS proactor does not support notifications yet");
++  iree_async_notification_t *n = NULL;
++  IREE_RETURN_IF_ERROR(iree_allocator_malloc(proactor->allocator,sizeof(*n),(void**)&n));
++  iree_atomic_ref_count_init(&n->ref_count);
++  n->proactor=proactor;
++  n->flags=flags;
++  n->epoch_ptr=&n->epoch;
++  *out_notification=n;
++  return iree_ok_status();
+ }
+ 
+ static iree_status_t iree_async_proactor_js_create_notification_shared(
+@@ -505,20 +512,19 @@
+ 
+ static void iree_async_proactor_js_destroy_notification(
+     iree_async_proactor_t* proactor, iree_async_notification_t* notification) {
+-  IREE_ASSERT(false, "destroy_notification called on JS proactor");
++  iree_allocator_free(proactor->allocator,notification);
+ }
+ 
+ static void iree_async_proactor_js_notification_signal(
+     iree_async_proactor_t* proactor, iree_async_notification_t* notification,
+     int32_t wake_count) {
+-  IREE_ASSERT(false, "notification_signal called on JS proactor");
++  (void)notification;
+ }
+ 
+ static bool iree_async_proactor_js_notification_wait(
+     iree_async_proactor_t* proactor, iree_async_notification_t* notification,
+     uint32_t wait_token, iree_timeout_t timeout) {
+-  IREE_ASSERT(false, "notification_wait called on JS proactor");
+-  return false;
++  return iree_async_notification_query_epoch(notification)!=wait_token;
+ }
+ 
+ static iree_status_t iree_async_proactor_js_register_relay(

@@ -24,7 +24,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      # Only the static viewer is published, at https://so3lr.github.io/gui/.
+      # The client and its on-device models are published, at https://so3lr.github.io/gui/.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
