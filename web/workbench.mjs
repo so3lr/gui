@@ -77,20 +77,16 @@ function canCalculate(structure) {
 }
 function updateAction() {
   if (!molecule || working) return;
-  const config=settings();
-  if(!canCalculate(molecule)){
-    byId('action').disabled=true;byId('action').textContent='Structure preview';
-    byId('python').hidden=true;
-    byId('engine-note').textContent=molecule.calculation_note||'Local calculations support up to 256 atoms.';
-    return;
-  }
-  const executable=engine || !molecule.cell;
-  byId('local-guide').hidden=executable;
-  const label=executable?(config.task==='md'?'Run dynamics':'Run optimization'):'Download Python job';
-  byId('action').replaceChildren(glyph(executable?'play':'code'),node('span',label));
-  byId('action').disabled=false;
-  byId('engine-note').textContent=engine?'Local engine':executable?'On this device · CPU':'Periodic cell · local engine required';
-  byId('python').hidden=!executable;
+  const supported=canCalculate(molecule), needsService=!engine && !!molecule.cell;
+  const action=byId('action');
+  action.hidden=action.disabled=!supported || needsService;
+  const label=byId('method').value==='md'?'Run dynamics':'Optimize geometry';
+  action.replaceChildren(glyph('play'),node('span',label));
+  byId('python').hidden=!supported;
+  byId('local-guide').hidden=!supported || !needsService;
+  byId('engine-note').textContent=!supported?(molecule.calculation_note||'Calculations support 2–256 atoms.')
+    :needsService?'Periodic optimization needs the local service.'
+    :engine?'Runs on the local service.':'Runs on this device’s CPU.';
 }
 function describeAtom() {
   const popup=byId('atom-pick');
@@ -108,9 +104,9 @@ function haltPlayback() {
 function clearOutput() {
   haltPlayback();
   shown=null; selectedAtom=null;analysis.clear();
-  byId('save-trajectory').hidden=true;
-  byId('view-status').hidden=false;
-  byId('view-kind').textContent='Structure view';
+  byId('view-status').hidden=true;
+  byId('run-input-note').hidden=true;
+  byId('replay-peptide').textContent='Open 500 ps recording';
   byId('dipole-control').hidden=true;byId('dipole-toggle').checked=false;
   byId('atom-pick').hidden=true; byId('result').hidden=true; byId('viewport-player').hidden=true; byId('job-error').hidden=true;
 }
@@ -156,9 +152,6 @@ byId('structure-scope').onchange=()=>{displayStructure(molecule);if(shown)change
 function loadMolecule(entry,config) {
   molecule=entry; clearOutput();
   byId('structure-title').textContent=entry.name;
-  byId('selected-structure').textContent=entry.conformer_count>1
-    ? entry.name+' · geometry '+(entry.source_frame??1)
-    : entry.name;
   byId('structure-title').title=entry.source?.replace('Frame 1 of','Frame '+(entry.source_frame??1)+' of')||'';
   const bar=byId('source-bar'),framePicker=byId('frame-picker'),picker=byId('starting-frame'),sourceLink=byId('source-xyz');
   bar.hidden=!(entry.xyz_file||entry.structure_file||entry.source_url||entry.recording);
@@ -182,9 +175,7 @@ function loadMolecule(entry,config) {
   const dataset=byId('dataset-source');dataset.hidden=!source;
   if(source){dataset.href=source;dataset.title=[entry.source||entry.description,entry.source_file].filter(Boolean).join(' · ')||'Dataset source';}
   framePicker.hidden=!(entry.conformer_count>1);
-  const replay=byId('replay-peptide');
-  replay.textContent=entry.recording_label??'Open recording';
-  replay.hidden=!entry.recording;
+  byId('replay-peptide').hidden=!entry.recording;
   if(entry.xyz_file){
     sourceLink.href=entry.xyz_file;sourceLink.setAttribute('download','');sourceLink.textContent='Source XYZ';
     if(entry.conformer_count>1){
@@ -255,7 +246,12 @@ async function selectExample(item,{replay=!!item.recording,scroll=true,play=fals
   }catch(error){flash(error.message);}
   finally{lock(false);}
 }
-byId('replay-peptide').onclick=()=>selectExample(molecule,{replay:true,scroll:false});
+byId('replay-peptide').onclick=()=>{
+  if(shown?.result.recording?.production_duration_fs){
+    haltPlayback();changeFrame(0);return;
+  }
+  selectExample(molecule,{replay:true,scroll:false});
+};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)haltPlayback();});
 async function saveScript() {
   if (!molecule || !canCalculate(molecule) || !byId('setup').reportValidity()) return;
@@ -296,7 +292,9 @@ function changeFrame(index) {
   const step=data.frame_steps?.[index]??index, last=data.frame_steps?.at(-1)??(data.frames.length-1);
   const time=data.times_fs?.[index];
   const frameLabel=shown.config.task==='trajectory'?'Frame '+(index+1)+' / '+data.frames.length:'Step '+step+' / '+last;
-  byId('frame-index').textContent=Number.isFinite(time)?formatTime(time)+' / '+formatTime(data.times_fs.at(-1)):frameLabel;
+  const label=Number.isFinite(time)?formatTime(time)+' / '+formatTime(data.times_fs.at(-1)):frameLabel;
+  byId('frame-index').textContent=label;
+  byId('scrub').setAttribute('aria-valuetext',label);
   describeAtom();
 }
 function addResult(entry,initialFrame) {
@@ -308,8 +306,9 @@ function openResult(entry,initialFrame=entry.result.frames.length-1) {
   haltPlayback();shown=entry;byId('result').hidden=false;
   const {result:r,config:c}=entry, multi=r.frames.length>1;
   const ala15Replay=entry.structure.id==='ala15_folded' && !!r.recording?.production_duration_fs;
-  byId('view-status').hidden=ala15Replay;
-  byId('view-kind').textContent=r.periodic?.optimizer?'Periodic optimization':'Structure view';
+  if(ala15Replay)byId('replay-peptide').textContent='Restart recording';
+  byId('view-status').hidden=true;
+  byId('run-input-note').hidden=!canCalculate(molecule);
   const interval=r.times_fs?.[1]-r.times_fs?.[0];
   const uniform=multi && Number.isFinite(interval) && r.times_fs.every((t,i)=>Math.abs(t-r.times_fs[0]-i*interval)<1e-5);
   const sampling=multi?r.frames.length.toLocaleString()+' saved frames'+(uniform?' every '+formatTime(interval):''):'';
@@ -326,7 +325,9 @@ function openResult(entry,initialFrame=entry.result.frames.length-1) {
   if(c.task==='trajectory')metrics.push(metric('Saved frames',r.frames.length));
   byId('measurements').replaceChildren(...metrics);
   byId('measurements').hidden=!metrics.length;
-  byId('viewport-player').hidden=byId('save-trajectory').hidden=!multi;
+  byId('viewport-player').hidden=!multi;
+  byId('trajectory-name').textContent=ala15Replay?'Saved 500 ps trajectory':entry.provenance==='Recorded example'?'Saved example trajectory'
+    :entry.provenance==='Imported coordinates'?'Imported trajectory':c.task==='md'?'Dynamics trajectory':'Optimization trajectory';
   byId('scrub').max=r.frames.length-1;
   byId('animate').disabled=!multi;
   analysis.load(r);
@@ -335,7 +336,7 @@ function openResult(entry,initialFrame=entry.result.frames.length-1) {
 }
 function lock(active) {
   working=active;
-  document.querySelectorAll('#setup input,#setup button,#setup select,.sample,#runs,#starting-frame,#replay-peptide').forEach(el=>el.disabled=active);
+  document.querySelectorAll('#setup input,#setup button,#setup select,.sample,.input-bar button,#runs,#starting-frame,#replay-peptide').forEach(el=>el.disabled=active);
   if(!active){configureMethod();updateAction();}
 }
 const sessionKey='so3lr-lab-active-job';
@@ -372,14 +373,15 @@ async function monitor(job) {
         const positions=molecule.id==='ala15_folded'?alignedView(frame.positions,molecule.coordinates,molecule.elements).positions:frame.positions;
         scene.positions(positions,null,frame.cell);
         const time=job.config.task==='md'?' · '+formatTime(frame.step*job.config.timestep):'';
-        byId('view-kind').textContent='Live '+(job.config.task==='md'?'MD':'optimization')+' · Step '+frame.step+time;
+        byId('view-status').hidden=false;
+        byId('view-status').textContent=(job.config.task==='md'?'Dynamics':'Optimization')+' · Step '+frame.step+time;
       }
       const p=state.progress;
       byId('engine-note').textContent=state.status==='cancelling'?'Stopping at the next step…':state.status==='queued'?'Waiting for engine':p?'Step '+p.step.toLocaleString()+' / '+p.total.toLocaleString():'Running '+resultModel(job.config);
       await new Promise(resolve=>setTimeout(resolve,state.status==='queued'?700:300));
     }
   }finally{activeJob=null;cancel.hidden=true;
-    if(!shown){byId('view-kind').textContent='Structure view';displayStructure(job.structure);}
+    if(!shown){byId('view-status').hidden=true;displayStructure(job.structure);}
   }
 }
 byId('cancel-job').onclick=async()=>{
@@ -403,7 +405,7 @@ function runInBrowser(structure,config) {
       const positions=structure.id==='ala15_folded'?alignedView(data.positions,structure.coordinates,structure.elements).positions:data.positions;
       scene.positions(positions,null,null);
       byId('view-status').hidden=false;
-      byId('view-kind').textContent=(config.task==='md'?'Live MD':'Live optimization')+' · Step '+data.step;
+      byId('view-status').textContent=(config.task==='md'?'Dynamics':'Optimization')+' · Step '+data.step;
       byId('engine-note').textContent='Step '+data.step+' / '+config.steps;
     };
     const {id,elements,coordinates}=structure;
@@ -412,9 +414,8 @@ function runInBrowser(structure,config) {
   return promise.finally(()=>{worker.terminate();cancel.hidden=true;cancelBrowserRun=null;});
 }
 async function calculate(event) {
-  event.preventDefault();if(working||!molecule||!canCalculate(molecule))return;
+  event.preventDefault();if(working||!molecule||!canCalculate(molecule)||(!engine && molecule.cell))return;
   const config=settings();
-  if(!engine && molecule.cell){saveScript();return;}
   clearOutput();displayStructure(molecule);lock(true);
   try{
     if(config.task==='md')config.seed=Math.floor(Math.random()*101);
@@ -482,7 +483,6 @@ byId('setup').oninput=event=>{
     setupDevices(hostStatus,byId('device').value);
   }
   if(!molecule)return;
-  if(shown){clearOutput();displayStructure(molecule);}
   byId('job-error').hidden=true;configureMethod();updateAction();
 };
 byId('python').onclick=saveScript;
@@ -497,7 +497,6 @@ function expand(open) {
 byId('expand').onclick=()=>expand(!byId('viewer').classList.contains('expanded'));
 byId('view-analysis').onclick=()=>expand(false);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')expand(false);});
-byId('bench').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
 byId('runs').onclick=()=>{
   const entries=byId('entries');entries.replaceChildren();
   if(!journal.length)entries.append(node('p','Open an example or run a calculation to start your history.','empty'));
@@ -505,22 +504,15 @@ byId('runs').onclick=()=>{
     const b=node('button',undefined,'entry');b.append(node('strong',entry.structure.name+(entry.structure.conformer_count>1?' · geometry '+(entry.structure.source_frame??1):'')),node('span',[taskLabel[entry.config.task],resultModel(entry.config),entry.provenance].filter(Boolean).join(' · ')));
     b.onclick=()=>{byId('journal').close();loadMolecule(entry.structure,liveConfig(entry));openResult(entry);};entries.append(b);
   }
-  byId('trajectory-import').open=false;
-  byId('analyze-file').disabled=!engine;
-  byId('trajectory-error').textContent=engine?'':'Start the local SO3LR server to analyze a trajectory.';
   byId('journal').showModal();
 };
-function importMode(kind) {
-  for(const tab of ['xyz','smiles']){
-    byId(tab+'-pane').hidden=tab!==kind;
-    byId(tab+'-tab').setAttribute('aria-pressed',String(tab===kind));
-  }
-}
-for(const kind of ['xyz','smiles'])byId(kind+'-tab').onclick=()=>{
-  smilesRequest?.abort();importMode(kind);
+byId('open-trajectory').onclick=()=>{
+  byId('trajectory-error').textContent='';
+  byId('trajectory-import').showModal();
+  if(engine)byId('trajectory-file').focus();
 };
 byId('importer').addEventListener('close',()=>smilesRequest?.abort());
-byId('journal').addEventListener('close',()=>trajectoryRequest?.abort());
+byId('trajectory-import').addEventListener('close',()=>trajectoryRequest?.abort());
 byId('trajectory-pane').onsubmit=async event=>{
   event.preventDefault();
   const file=byId('trajectory-file').files[0], button=byId('analyze-file');
@@ -535,15 +527,21 @@ byId('trajectory-pane').onsubmit=async event=>{
     if(controller.signal.aborted)return;
     const {structure,result}=data, config={task:result.task??'trajectory',model:result.model,charge:structure.charge,temperature:result.md?.temperature,timestep:result.md?.timestep,seed:result.md?.seed};
     loadMolecule(structure);const entry={structure,result,config,provenance:'Imported coordinates'};
-    addResult(entry);byId('journal').close();
+    addResult(entry);byId('trajectory-import').close();
     byId('trajectory-analysis').scrollIntoView({block:'nearest',behavior:'smooth'});
   }catch(error){if(error.name!=='AbortError')byId('trajectory-error').textContent=error.message;}
   finally{trajectoryRequest=null;button.disabled=false;button.textContent='Analyze trajectory';}
 };
-byId('import').onclick=()=>{
+function openStructureInput(smiles) {
   byId('file-error').textContent='';byId('coordinates').value='';byId('smiles-error').textContent='';
-  importMode('xyz');byId('importer').showModal();byId('xyz-tab').focus();
-};
+  byId('import-title').textContent=smiles?'Build from SMILES':'Open XYZ';
+  byId('smiles-pane').hidden=!smiles;
+  byId('xyz-pane').hidden=smiles;
+  byId('importer').showModal();
+  byId(smiles?'smiles-text':'input-file').focus();
+}
+byId('open-xyz').onclick=()=>openStructureInput(false);
+byId('open-smiles').onclick=()=>openStructureInput(true);
 byId('smiles-pane').onsubmit=async event=>{
   event.preventDefault();
   if(smilesRequest)return;
@@ -646,10 +644,16 @@ function setupDevices(status,requested='auto') {
 async function initialize(){
   try{
     const local=['/','/index.html'].includes(location.pathname) && ['127.0.0.1','localhost','[::1]'].includes(location.hostname);
-    engineCheck=local?request('api/status').catch(()=>null):Promise.resolve(null);
+    engineCheck=(local?request('api/status').catch(()=>null):Promise.resolve(null)).then(status=>{
+      hostStatus=status;engine=status?.engine==='so3lr';
+      byId('trajectory-checking').hidden=true;
+      byId('trajectory-local-note').hidden=engine;
+      byId('trajectory-pane').hidden=!engine;
+      return status;
+    });
     const [core,paper]=await Promise.all(['molecules.json','paper-catalog.json'].map(path=>request(path)));
     const folded=core.find(s=>s.id==='ala15_folded');
-    Object.assign(folded,{recording:'ala15-paper.json',recording_label:'Saved 500 ps trajectory',default_task:'md',source_url:'https://arxiv.org/html/2611.06237v1'});
+    Object.assign(folded,{recording:'ala15-paper.json',default_task:'md',source_url:'https://arxiv.org/html/2611.06237v1'});
     core.forEach(s=>s.group='Molecular examples');
     const items=[...core,...paper].filter(canCalculate);
     const atomCount=item=>item.atom_count??item.elements.length;
@@ -659,8 +663,7 @@ async function initialize(){
     const query=new URLSearchParams(location.search),example=query.get('example');
     const preset=items.find(item=>item.id===(example==='ala15'?'ala15_folded':example))??folded;
     const startup=job?.id?Promise.resolve():selectExample(preset,{replay:query.get('view')!=='structure' && !!preset.recording,scroll:false,play:!example});
-    const online=await engineCheck;engine=online?.engine==='so3lr';hostStatus=online;
-    byId('local-guide').hidden=true;
+    const online=await engineCheck;
     if(!engine)byId('smiles-help').textContent='Build a 3D starting geometry with explicit hydrogens in your browser. Use @ or @@ to specify a chiral center.';
     await startup;
     setupDevices(online,byId('device').value);updateAction();

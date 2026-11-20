@@ -19,6 +19,13 @@ async function main() {
     });
     await page.goto(process.env.TEST_URL || 'http://localhost:8000/gui/');
     await page.locator('#scrub').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#trajectory-name').textContent(), 'Saved 500 ps trajectory');
+    assert.equal(await page.locator('#action').textContent(), 'Run dynamics');
+    await page.getByRole('button', { name: 'Open trajectory' }).click();
+    const importer = page.getByRole('dialog', { name: 'Open trajectory' });
+    assert.ok(await importer.getByRole('link', { name: 'Local setup instructions' }).isVisible());
+    assert.ok(await importer.locator('#trajectory-pane').isHidden());
+    await page.keyboard.press('Escape');
 
     const selectedModel = page.locator('input[name=potential]:checked');
     assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-m');
@@ -102,19 +109,29 @@ async function main() {
       );
     }
     await page.locator('#md-steps').fill('3');
+    assert.ok(await page.locator('#viewport-player').isVisible());
+    assert.equal(await page.locator('#trajectory-name').textContent(), 'Saved 500 ps trajectory');
+    await page.locator('#scrub').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.getByRole('button', { name: 'Restart recording' }).click();
+    assert.equal(await page.locator('#scrub').inputValue(), '0');
+    assert.equal(await page.locator('#md-steps').inputValue(), '3');
     await page.click('#action');
     await waitForResult();
     assert.equal(await page.locator('#frame-index').textContent(), '3 fs / 3 fs');
+    assert.equal(await page.locator('#scrub').getAttribute('aria-valuetext'), '3 fs / 3 fs');
+    assert.equal(await page.locator('#trajectory-name').textContent(), 'Dynamics trajectory');
     assert.equal(await page.locator('#scrub').getAttribute('max'), '3');
     assert.ok(await page.getByText('Secondary structure over time', { exact: true }).isVisible());
 
-    await page.click('#import');
+    await page.getByRole('button', { name: 'Open XYZ' }).click();
     await page
       .locator('#coordinates')
       .fill('3\nStretched water\nO 0 0 0\nH 1.18 0 0\nH -0.24 0.927 0');
     await page.click('#read-paste');
     assert.equal(await selectedModel.inputValue(), 'so3lr-tauri-s');
     await page.selectOption('#method', 'relax');
+    assert.equal(await page.locator('#action').textContent(), 'Optimize geometry');
     await page.click('#action');
     await waitForResult();
     assert.match(await page.locator('#measurements').textContent(), /Converged/);
@@ -125,8 +142,7 @@ async function main() {
     assert.ok(energies.length > 1 && energies.at(-1) < energies[0]);
     assert.match(xyz, /model=so3lr-tauri-s/);
     assert.match(xyz, /optimizer="LBFGS"/);
-    await page.click('#import');
-    await page.click('#smiles-tab');
+    await page.getByRole('button', { name: 'Build from SMILES' }).click();
     await page.locator('#smiles-text').fill('C[NH3+]');
     await page.click('#build-smiles');
     await page.locator('#importer').waitFor({ state: 'hidden' });
