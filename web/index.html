@@ -11,16 +11,22 @@
 <link rel="stylesheet" href="analysis.css">
 </head>
 <body>
-<header><div class="shell mast">
-  <a class="brand" href="./" aria-label="SO3LR home"><img src="so3lr-mark.png" alt="" width="512" height="512"><strong>SO3LR</strong></a>
-  <nav aria-label="Workbench"><button id="bench" aria-current="page"><em data-glyph="desk"></em>Workbench</button><a class="examples-nav" href="#library">Examples</a><button id="runs"><em data-glyph="clock"></em>Run history</button></nav>
-  <div class="references"><a href="https://so3lr.github.io/" target="_blank" rel="noopener"><em data-glyph="book"></em><span>Docs</span></a><a href="https://github.com/general-molecular-simulations/so3lr" target="_blank" rel="noopener" aria-label="SO3LR on GitHub"><em data-glyph="github"></em></a></div>
+<header id="top"><div class="shell mast">
+  <a class="brand" href="#top" aria-label="SO3LR workbench"><img src="so3lr-mark.png" alt="" width="512" height="512"><strong>SO3LR</strong></a>
+  <nav aria-label="Runs"><button id="runs" type="button" aria-haspopup="dialog"><em data-glyph="clock"></em>Run history</button></nav>
+  <div class="references"><a href="https://so3lr.github.io/" target="_blank" rel="noopener" aria-label="SO3LR documentation"><em data-glyph="book"></em><span>Docs</span></a><a href="https://github.com/general-molecular-simulations/so3lr" target="_blank" rel="noopener" aria-label="SO3LR on GitHub"><em data-glyph="github"></em></a></div>
 </div></header>
 <main class="shell">
   <div class="desk">
     <section class="viewer" id="viewer" aria-labelledby="structure-title">
+      <div class="input-bar">
+        <button id="open-xyz" type="button" aria-haspopup="dialog">Open XYZ</button>
+        <button id="open-smiles" type="button" aria-haspopup="dialog">Build from SMILES</button>
+        <a href="#library">Examples</a>
+        <button id="open-trajectory" type="button" aria-haspopup="dialog">Open trajectory</button>
+      </div>
       <div class="viewfield">
-        <div class="view-heading"><div><div class="overline" id="view-status" hidden><em data-glyph="crosshair"></em><span id="view-kind">Structure view</span></div><h1 id="structure-title">Ala15</h1><div class="formula-line" id="molecular-info"></div></div>
+        <div class="view-heading"><div><h1 id="structure-title" aria-live="polite">Ala15</h1><div class="formula-line" id="molecular-info"></div><p id="view-status" hidden></p></div>
           <div class="view-options">
             <label class="selectbox shading"><em data-glyph="cube"></em><select id="mode" aria-label="Display style"><option value="ball">Ball &amp; stick</option><option value="space">Space-filling</option><option value="wire">Wireframe</option><option value="points">Points</option></select><em data-glyph="down"></em></label>
           </div>
@@ -36,34 +42,32 @@
         <label class="scope-picker" id="scope-control" hidden>Show <select id="structure-scope"><option value="solute">Solute</option><option value="cell">Full cell</option></select></label>
         <span id="cell-info" hidden></span>
         <label id="dipole-control" hidden><input id="dipole-toggle" type="checkbox"><span id="dipole-label">Dipole</span></label>
-        <button id="save-trajectory" type="button" hidden><em data-glyph="save"></em>Save trajectory</button>
       </div>
-      <div class="viewport-player" id="viewport-player" hidden>
-        <button id="animate" aria-label="Play trajectory" title="Play trajectory"><em data-glyph="play"></em></button>
-        <select id="playback-speed" aria-label="Playback speed" title="Playback speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
-        <input id="scrub" aria-label="Trajectory frame" type="range" min="0" max="1" value="0"><output id="frame-index" for="scrub"></output><a id="view-analysis" href="#trajectory-analysis" hidden>Analysis ↓</a></div>
       <div class="source-bar" id="source-bar" hidden>
         <label id="frame-picker" for="starting-frame" hidden>Starting geometry <select id="starting-frame"></select><span id="source-count"></span></label>
         <a id="dataset-source" target="_blank" rel="noopener" hidden>Dataset source</a><button type="button" id="replay-peptide" hidden>Open recording</button><a id="source-xyz" download><em data-glyph="save"></em>Source XYZ</a>
       </div>
+      <div class="viewport-player" id="viewport-player" role="group" aria-labelledby="trajectory-name" hidden>
+        <div class="trajectory-tools">
+          <span id="trajectory-name"></span>
+          <a id="view-analysis" href="#trajectory-analysis" hidden>View analysis</a>
+          <button id="save-trajectory" type="button"><em data-glyph="save"></em>Save trajectory</button>
+        </div>
+        <div class="timeline">
+          <button id="animate" type="button" aria-label="Play trajectory" title="Play trajectory"><em data-glyph="play"></em></button>
+          <select id="playback-speed" aria-label="Playback speed" title="Playback speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+          <input id="scrub" aria-label="Trajectory frame" type="range" min="0" max="1" value="0"><span id="frame-index" aria-hidden="true"></span>
+        </div>
+      </div>
     </section>
     <section class="settings" aria-labelledby="setup-title">
-      <div class="card-heading"><span class="tool-icon"><em data-glyph="controls"></em></span><h2 id="setup-title">New calculation</h2></div><p id="example-description" hidden></p>
+      <div class="card-heading"><h2 id="setup-title">Run a calculation</h2></div><p id="example-description" hidden></p>
       <form id="setup">
-        <fieldset class="structure-source"><legend>Selected structure</legend>
-          <p id="selected-structure" aria-live="polite"></p>
-          <div class="source-options"><button type="button" class="outline" id="import"><em data-glyph="import"></em>Add XYZ or SMILES</button><a class="outline" href="#library"><em data-glyph="library"></em>Example library</a></div>
-        </fieldset>
         <label class="field-title" for="method">Calculation type</label>
         <div class="selectbox white"><em data-glyph="wave"></em><select id="method"><option value="relax">Geometry optimization</option><option value="md">Molecular dynamics</option></select><em data-glyph="down"></em></div>
         
-        <fieldset><legend>SO3LR-Tauri model</legend><div class="model-choice">
-          <label><input type="radio" name="potential" value="so3lr-tauri-s" checked><span>S</span></label>
-          <label><input type="radio" name="potential" value="so3lr-tauri-m"><span>M</span></label>
-          <label><input type="radio" name="potential" value="so3lr-tauri-l"><span>L</span></label>
-        </div></fieldset>
         <div class="extra calculation-inputs">
-          <label data-method="relax">Force limit (eV/Å)<input id="force-limit" type="number" value="0.01" min="0.001" max="1" step="0.001" required></label>
+          <label data-method="relax">Force tolerance (eV/Å)<input id="force-limit" type="number" value="0.01" min="0.001" max="1" step="0.001" required></label>
           <label data-method="relax">Maximum steps<input id="max-steps" type="number" value="100" min="1" max="2000" step="1" required></label>
           <label data-method="md" hidden>Temperature (K)<input id="md-temp" type="number" min="1" max="2000" step="any" value="300" required></label>
           <label data-method="md" hidden>Time step (fs)<input id="md-dt" type="number" min="0.05" max="2" step="any" value="1.0" required></label>
@@ -73,11 +77,23 @@
         <div id="md-settings" data-method="md" hidden>
           <div class="md-duration"><span>Simulated time</span><output id="duration" for="md-dt md-steps">1 ps</output></div>
         </div>
+        <fieldset><legend>Tauri model</legend><div class="model-choice">
+          <label><input type="radio" name="potential" value="so3lr-tauri-s" checked><span>S <small>Faster</small></span></label>
+          <label><input type="radio" name="potential" value="so3lr-tauri-m"><span>M <small>Balanced</small></span></label>
+          <label><input type="radio" name="potential" value="so3lr-tauri-l"><span>L <small>More accurate</small></span></label>
+        </div></fieldset>
         <div class="property device-row" hidden><label for="precision">Model precision</label><div class="device-choice selectbox"><select id="precision"><option value="mixed">Mixed</option><option value="float32">Float32</option></select><em data-glyph="down"></em></div></div>
         <div class="property device-row" hidden><label for="device">Compute device</label><div class="device-choice selectbox"><select id="device"><option value="auto">Automatic</option></select><em data-glyph="down"></em></div></div>
         
         <div class="property" hidden><span>Environment</span><span class="env"><em data-glyph="orbit"></em><span id="environment">Periodic cell</span></span></div>
-        <div class="execute"><button id="action" class="action" type="submit" disabled><em data-glyph="play"></em><span>Loading structure</span></button><div class="execution-note"><span id="engine-note" role="status"></span><a id="local-guide" href="https://github.com/so3lr/gui#start-the-workbench" hidden>Run locally</a><button id="cancel-job" type="button" hidden>Cancel run</button><button id="python" type="button" title="Download a self-contained SO3LR Python calculation"><em data-glyph="code"></em>Export Python</button></div><p id="job-error" role="alert" hidden></p></div>
+        <div class="execute">
+          <p id="run-input-note" hidden>Starts from the input geometry.</p>
+          <button id="action" class="action" type="submit" disabled><em data-glyph="play"></em><span>Loading structure</span></button>
+          <button id="python" class="outline" type="button" hidden><em data-glyph="code"></em>Download Python job</button>
+          <div class="execution-note"><span id="engine-note" role="status"></span><button id="cancel-job" type="button" hidden>Cancel run</button></div>
+          <a id="local-guide" href="https://github.com/so3lr/gui#start-the-workbench" hidden>Start the local service</a>
+          <p id="job-error" role="alert" hidden></p>
+        </div>
       </form>
     </section>
   </div>
@@ -89,8 +105,7 @@
   <section id="library" class="library" aria-labelledby="library-title"><div class="row-head"><div class="library-name"><em data-glyph="library"></em><h2 id="library-title">Example library</h2></div><span id="library-count" class="library-count"></span></div><div id="molecules" class="library-grid"></div></section>
   <footer><img src="so3lr-wordmark.png" alt="SO3LR" width="980" height="252"><a href="browser-runtime/NOTICE.txt">Model license</a><a href="https://arxiv.org/abs/2611.06237" target="_blank" rel="noopener">Model paper<em data-glyph="external"></em></a></footer>
 </main>
-<dialog id="importer" aria-labelledby="import-title"><div class="dialog-head"><h2 id="import-title">Add XYZ or SMILES</h2><button class="close" data-dismiss aria-label="Close"><em data-glyph="x"></em></button></div>
-  <div class="import-switch" role="group" aria-label="Structure input format"><button id="xyz-tab" type="button" aria-pressed="true" aria-controls="xyz-pane">XYZ</button><button id="smiles-tab" type="button" aria-pressed="false" aria-controls="smiles-pane">SMILES</button></div>
+<dialog id="importer" aria-labelledby="import-title"><div class="dialog-head"><h2 id="import-title">Open XYZ</h2><button class="close" data-dismiss aria-label="Close"><em data-glyph="x"></em></button></div>
   <form id="smiles-pane" hidden>
     <label class="field-title" for="smiles-text">SMILES string</label><input class="smiles-input" id="smiles-text" type="text" placeholder="CCO" spellcheck="false" autocapitalize="off" autocomplete="off" required>
     <p class="input-help" id="smiles-help">Build a 3D starting geometry with explicit hydrogens. Use @ or @@ to specify a chiral center.</p>
@@ -103,9 +118,14 @@
   </div>
 
 </dialog>
-<dialog id="journal"><div class="dialog-head"><h2>Run history</h2><button class="close" data-dismiss aria-label="Close"><em data-glyph="x"></em></button></div><div id="entries"></div>
-  <details id="trajectory-import"><summary>Open trajectory</summary>
-  <form id="trajectory-pane">
+<dialog id="journal" aria-labelledby="journal-title">
+  <div class="dialog-head"><h2 id="journal-title">Run history</h2><button class="close" data-dismiss aria-label="Close"><em data-glyph="x"></em></button></div><div id="entries"></div>
+</dialog>
+<dialog id="trajectory-import" aria-labelledby="trajectory-import-title">
+  <div class="dialog-head"><h2 id="trajectory-import-title">Open trajectory</h2><button class="close" data-dismiss aria-label="Close"><em data-glyph="x"></em></button></div>
+  <p id="trajectory-checking" class="input-help" role="status">Checking for the local SO3LR service…</p>
+  <p id="trajectory-local-note" class="input-help" hidden>To open an XYZ or extended XYZ trajectory, start the local SO3LR service. <a href="https://github.com/so3lr/gui#start-the-workbench">Local setup instructions</a></p>
+  <form id="trajectory-pane" hidden>
     <label class="field-title" for="trajectory-file">Trajectory file</label>
     <input id="trajectory-file" type="file" accept=".xyz,.extxyz,text/plain" required>
     <p class="input-help">Open a trajectory with a fixed atom order. Periodic extended XYZ files must include the lattice in every frame.</p>
@@ -114,7 +134,6 @@
     <p class="input-help">Enter the interval for MD files without timestamps. Optimizations use step numbers. Up to 5,000 frames and 500,000 atom positions.</p>
     <p class="err" id="trajectory-error" role="alert"></p><button class="action" id="analyze-file" type="submit">Analyze trajectory</button>
   </form>
-  </details>
 </dialog>
 <div id="notice" role="status" hidden></div>
 <script type="module" src="workbench.mjs"></script>
