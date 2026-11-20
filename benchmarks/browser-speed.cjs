@@ -1,8 +1,10 @@
 // With Playwright available, pass one or more GUI URLs to compare on the same browser.
-const {chromium} = require('playwright');
+const {chromium, webkit} = require('playwright');
 
 async function main() {
-  const browser = await chromium.launch({executablePath:process.env.CHROME_PATH});
+  const browser = process.env.BROWSER === 'webkit'
+    ? await webkit.launch()
+    : await chromium.launch({executablePath:process.env.CHROME_PATH});
   try {
     for (const url of process.argv.slice(2)) {
       const page = await browser.newPage({reducedMotion:'reduce'});
