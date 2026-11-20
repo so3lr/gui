@@ -16,8 +16,8 @@ async function loadKernel(model, n, edges) {
   const prefix = new URL('./browser-runtime/' + model + '-' + n, import.meta.url).href;
   const [glue, bytes, weights] = await Promise.all([
     import('./browser-runtime/force-runtime.mjs'),
-    decompress(prefix + '.wasm.gz'),
-    decompress(prefix + '.vmfb.gz'),
+    decompress(prefix + '.wasm.gz?layout=tiled1'),
+    decompress(prefix + '.vmfb.gz?layout=tiled1'),
   ]);
   const compiled = await WebAssembly.compile(bytes);
   const context = { inline: true };

@@ -18,6 +18,8 @@ export PYTHON="$GUI/.venv/bin/python"
 
 IREE's synchronous HAL needs an in-memory epoch notification in its single-worker JavaScript proactor. The patch supplies that operation. This build uses a single WebAssembly thread with SIMD. The isolated force model has no periodic electrostatics or cell-stress entry point.
 
+IREE data tiling packs matrix operands into blocks for the WebAssembly SIMD backend. The compiler limits per-dispatch stack allocations to 256 KiB, and the WebAssembly module reserves a 1 MiB C stack for these temporaries and runtime calls. Rebuild the VM bytecode and WebAssembly for each shape together because their data layouts are coupled.
+
 The separate MDTraj module computes the Ala15 DSSP fractions using the same library as the local engine. Its corresponding library sources and license are in `web/vendor/mdtraj/`. To rebuild it separately, put the activated Emscripten toolchain on PATH and run `browser-build/dssp.sh`.
 
 ## Browser regression checks
@@ -28,6 +30,6 @@ The reference fixture stores eV and eV/Å for each library geometry as supplied,
 
 ## Timing browser runs
 
-Run `node benchmarks/browser-speed.cjs <baseline-gui-url> <candidate-gui-url>` with Playwright available to Node. Use a trailing slash for each GUI URL and optionally set `CHROME_PATH`. The benchmark runs MD and geometry optimization sequentially in the real simulation worker, discards model loading and the first two steps, and reports wall-clock milliseconds per subsequent step. Use the same browser and machine for both versions.
+Run `node benchmarks/browser-speed.cjs <baseline-gui-url> <candidate-gui-url>` with Playwright available to Node. Use a trailing slash for each GUI URL and optionally set `CHROME_PATH` for Chrome or `BROWSER=webkit` for WebKit. The benchmark runs MD and geometry optimization sequentially in the real simulation worker, discards model loading and the first two steps, and reports wall-clock milliseconds per subsequent step. Use the same browser and machine for both versions.
 
 The force evaluator chooses a compiled shape from the atom count and the number of real short-range pairs. Shapes include two padding atoms. Neighbor lists are rebuilt at each evaluation. A structure that becomes denser can move to a larger kernel during a run. The largest supported shape and model cutoffs are shared by both releases.

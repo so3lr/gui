@@ -22,7 +22,8 @@ for model in s m l; do
     atoms=${shape%:*}
     neighbors=${shape#*:}
     "$PYTHON" "$src/export.py" "$atoms" "$neighbors" "$model" force.mlir
-    iree-compile force.mlir --iree-hal-target-backends=llvm-cpu \
+    iree-compile force.mlir --iree-opt-data-tiling=true --iree-llvmcpu-stack-allocation-limit=262144 \
+      --iree-hal-target-backends=llvm-cpu \
       --iree-llvmcpu-target-triple=wasm32-unknown-emscripten \
       --iree-llvmcpu-target-cpu-features=+simd128 --iree-llvmcpu-link-embedded=false \
       --iree-llvmcpu-link-static --iree-llvmcpu-static-library-output-path=force.o -o force.vmfb
